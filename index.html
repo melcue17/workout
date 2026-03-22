@@ -55,7 +55,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .smb{padding:5px 11px;border-radius:var(--rs);border:1px solid var(--border2);font-size:12px;font-weight:500;cursor:pointer;background:var(--bg);color:var(--text)}
 .hint{font-size:12px;color:var(--text3);margin:2px 0 6px;min-height:14px}
 /* exercise items */
-.exi{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg);margin-bottom:7px;position:relative;touch-action:none;transition:box-shadow .15s,opacity .15s}
+.exi{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg);margin-bottom:7px;position:relative;transition:box-shadow .15s,opacity .15s}
 .exi.clickable{cursor:pointer}
 .exi.clickable:active{background:var(--bg2)}
 .exi.sel{border-color:var(--text);background:var(--bg2)}
@@ -76,7 +76,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .stp-corner{position:absolute;top:6px;right:6px;font-size:10px;padding:2px 6px;border-radius:5px;border:1px solid var(--border2);background:var(--bg);color:var(--text3);cursor:pointer;line-height:1.4}
 .stp-corner.act{border-color:var(--green);color:var(--green)}
 /* drag handle */
-.drag-handle{width:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:grab;color:var(--text3);margin-top:2px;touch-action:none}
+.drag-handle{width:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:grab;color:var(--text3);margin-top:2px;touch-action:none;padding:4px 0}
 .drag-handle:active{cursor:grabbing}
 .iacts{display:flex;gap:5px;margin-top:5px}
 .mb{font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer}
@@ -417,7 +417,6 @@ function onTouchStart(e,part,i){
   if(e.target.closest('.eform')||e.target.closest('.stp-corner'))return;
   const handle=e.target.closest('.drag-handle');
   if(!handle)return;
-  e.preventDefault();
   touchDrag.active=true;touchDrag.srcIdx=i;touchDrag.srcPart=part;touchDrag.startY=e.touches[0].clientY;
   const el=e.currentTarget;
   const rect=el.getBoundingClientRect();
