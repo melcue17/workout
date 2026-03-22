@@ -428,7 +428,7 @@ function onTouchStart(e,part,i){
   el.style.opacity='0.3';touchDrag.el=el;
 }
 function onTouchMove(e){
-  if(!touchDrag.active)return;e.preventDefault();
+  if(!touchDrag.active)return;
   const dy=e.touches[0].clientY-touchDrag.startY;
   touchDrag.clone.style.top=(touchDrag.elTop+dy)+'px';
   // find target
@@ -473,7 +473,7 @@ function onTouchEnd(e){
   touchDrag={active:false,srcIdx:null,srcPart:null,clone:null,el:null,startY:0,elTop:0};
   renderList();
 }
-document.addEventListener('touchmove',onTouchMove,{passive:false});
+document.addEventListener('touchmove',onTouchMove,{passive:true});
 document.addEventListener('touchend',onTouchEnd);
 
 // ── List render ──
