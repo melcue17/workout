@@ -31,10 +31,10 @@ const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObje
   --dangerbg:#2a0f0f;--dangertxt:#f87171;--dangerborder:#7f1d1d;
 }}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overscroll-behavior-y:none}
+html,body{overscroll-behavior-y:none}
 body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);font-size:15px}
-.app{max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-.nav{flex-shrink:0;padding:10px 14px 0;background:var(--bg);z-index:20;position:relative}
+.app{max-width:480px;margin:0 auto;}
+.nav{padding:10px 14px 0;background:var(--bg);z-index:20;position:sticky;top:0;}
 .vtabs{display:flex;background:var(--bg2);border-radius:var(--rs);padding:3px;margin-bottom:10px}
 .vtab{flex:1;padding:7px 4px;text-align:center;font-size:13px;font-weight:500;border-radius:5px;cursor:pointer;color:var(--text2);border:none;background:none;transition:all .15s}
 .vtab.active{background:var(--bg);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
@@ -42,7 +42,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .ptabs::-webkit-scrollbar{display:none}
 .ptab{flex-shrink:0;padding:5px 13px;border-radius:20px;border:1px solid var(--border2);font-size:13px;font-weight:500;cursor:pointer;background:var(--bg);color:var(--text);transition:all .15s}
 .ptab.active{background:var(--text);color:var(--bg);border-color:var(--text)}
-.content{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:0 14px 120px;min-height:0}
+.content{padding:0 14px 120px;}
 .page{display:none}.page.active{display:block}
 /* progress */
 .pgwrap{margin:10px 0 6px}
