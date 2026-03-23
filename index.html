@@ -411,6 +411,9 @@ function tglTplSection(){
 function saveTpl(){
   tpl.memo=document.getElementById('tpl-memo').value;
   saveAll();
+  // 기록지 즉시 반영
+  applyTplToRecord();
+  renderWt();
   const h=document.getElementById('tpl-hint');
   h.textContent='저장됐어요!';h.style.color='var(--green)';
   setTimeout(()=>{h.textContent='';h.style.color=''},2000);
