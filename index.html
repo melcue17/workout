@@ -263,6 +263,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
       <div class="slbl" id="rpartlbl">운동</div>
       <div id="rcards"></div>
       <div id="rec-tpl-memo" style="display:none;padding:10px 12px;background:var(--bg2);border-radius:var(--rs);margin-bottom:12px;font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.6"></div>
+
+      <div class="divider"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="slbl" style="margin:0">기록지 템플릿</div>
+        <button onclick="tglTplSection()" id="tpl-toggle-btn" style="font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);cursor:pointer">펼치기</button>
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:8px">새 기록지를 열 때 자동으로 적용되는 기본값이에요. 기존 기록은 변경되지 않아요.</p>
+      <div id="tpl-section" style="display:none">
+        <div class="slbl">운동 종류 기본값</div>
+        <div class="wtrow" id="tpl-wttags"></div>
+        <div class="wt-edit-form">
+          <input class="wtinp" id="tpl-wtinp" placeholder="">
+          <button class="wtaddb" onclick="addTplWt()">추가</button>
+        </div>
+        <div class="divider"></div>
+        <div class="slbl">메모 기본값</div>
+        <textarea id="tpl-memo" placeholder="매번 기록지에 포함할 메모" style="width:100%;padding:10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text);resize:vertical;min-height:80px;font-family:inherit;line-height:1.6"></textarea>
+        <div style="margin-top:10px">
+          <button onclick="saveTpl()" style="width:100%;padding:12px;border-radius:var(--r);border:none;font-size:14px;font-weight:700;cursor:pointer;background:var(--text);color:var(--bg)">템플릿 저장</button>
+        </div>
+        <div class="hint" id="tpl-hint"></div>
+      </div>
       <div class="divider"></div>
       <div class="racbtns">
         <button class="resetbtn" onclick="resetRecord()">초기화</button>
@@ -270,33 +292,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
       </div>
       <div class="hint" id="rechint"></div>
     </div>
-  <!-- TEMPLATE -->
-  <div class="page" id="page-template">
-    <div class="px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 4px">
-        <span style="font-size:16px;font-weight:700">기록지 템플릿</span>
-      </div>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">여기서 설정한 내용이 새 기록지의 기본값이 돼요. 기존 기록은 변경되지 않아요.</p>
-      <div class="slbl">운동 종류 기본값 <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">선택된 항목이 기록지에 자동 체크돼요</span></div>
-      <div class="wtrow" id="tpl-wttags"></div>
-      <div class="wt-edit-form">
-        <input class="wtinp" id="tpl-wtinp" placeholder="">
-        <button class="wtaddb" onclick="addTplWt()">추가</button>
-      </div>
-      <div class="divider"></div>
-      <div class="slbl">부위 기본 선택 <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">탭해서 선택/해제</span></div>
-      <p style="font-size:12px;color:var(--text3);margin-bottom:10px">기록지 열 때 이 부위들의 운동이 자동으로 표시돼요.</p>
-      <div id="tpl-parts" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
-      <div class="divider"></div>
-      <div class="slbl">메모 기본값</div>
-      <textarea id="tpl-memo" placeholder="매번 기록지에 포함할 메모 (예: 오늘의 목표, 주의사항 등)" style="width:100%;padding:10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text);resize:vertical;min-height:80px;font-family:inherit;line-height:1.6"></textarea>
-      <div class="divider"></div>
-      <button onclick="saveTpl()" style="width:100%;padding:14px;border-radius:var(--r);border:none;font-size:15px;font-weight:700;cursor:pointer;background:var(--text);color:var(--bg);margin-bottom:8px">템플릿 저장</button>
-      <div class="hint" id="tpl-hint"></div>
-    </div>
-  </div>
-
-  <!-- HISTORY -->
+    <!-- HISTORY -->
   <div class="page" id="page-history">
       <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 10px">
         <span style="font-size:16px;font-weight:700">운동 기록</span>
@@ -350,7 +346,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 <script>
 const DEF={하체:[{name:"시티드 레그프레스",detail:"38kg x 20개",note:"발 높게"},{name:"시티드 레그프레스 힙",detail:"35kg x 20개",note:"다리 11자로, 발 높게"},{name:"파워 레그프레스",detail:"무게 없이 x 20개",note:""},{name:"시티드 레그컬",detail:"22kg x 20개",note:"의자 3까지 보이게, 발목 위에서 2번째, 허벅지 맨 마지막 구멍"},{name:"라잉 레그컬",detail:"10kg x 15개",note:""},{name:"레그익스텐션",detail:"19kg x 15개",note:""},{name:"MTS 레그익스텐션",detail:"10kg x 15개씩",note:""},{name:"맨몸 스쿼트",detail:"15개",note:""},{name:"스미스머신 스쿼트",detail:"양쪽 2.5kg씩 x 15개",note:"발 위치 잘 두고, 다리 충분히 벌리고, 무릎 대각선으로 열기"},{name:"핵스쿼트",detail:"양쪽 5kg씩 x 15개",note:""},{name:"케틀벨 와이드 스쿼트",detail:"10kg 들고 x 15개",note:""},{name:"스쿼트 프레스",detail:"양쪽 20kg씩 x 15개",note:"파워레그프레스 옆 갈색판"},{name:"스플릿 스쿼트",detail:"15개씩",note:""},{name:"맨몸 런지",detail:"15개",note:""},{name:"스미스머신 런지",detail:"2.5kg씩 x 15개",note:""},{name:"이너타이",detail:"57kg x 20개",note:""},{name:"아웃타이",detail:"43kg x 20개",note:""},{name:"스탠딩 아웃타이",detail:"양쪽 5kg씩 x 20개",note:"힙힌지 제대로 하기"},{name:"몬스터 글루트",detail:"양쪽 5kg씩 x 20개",note:""},{name:"힙쓰러스트 머신",detail:"벨트 매고 x 15개",note:""},{name:"덩키 킥",detail:"1.25kg x 15개씩",note:""},{name:"덤벨 스티프레그 데드리프트",detail:"1kg씩 들고 x 20개",note:"벽 한 발짝 앞, 햄스트링 운동"}],등:[{name:"롱풀로우",detail:"10kg x 15개",note:""},{name:"롱풀로우 언더그립",detail:"10kg x 15개",note:""},{name:"렛풀다운",detail:"18.5kg x 15개",note:""},{name:"R렛풀다운 머신",detail:"양쪽 10kg씩 x 15개",note:""},{name:"맥그립 렛풀다운",detail:"14kg x 15개",note:"비둘기 날개 펼친 것처럼 생긴 것"},{name:"내로우 그립 렛풀다운",detail:"6.25kg x 15개",note:"언더그립, 어깨넓이로"},{name:"하이로우",detail:"10kg x 15개",note:""},{name:"레터럴 하이로우",detail:"양쪽 7.5kg씩 x 15개",note:""},{name:"오버그립 로우",detail:"12kg x 15개",note:""},{name:"언더그립 로우",detail:"14.5kg x 15개",note:"팔꿈치 옆구리 확실히 지날 만큼 쭉 당기기"},{name:"시티드 로우 머신",detail:"양쪽 5kg씩 x 15개",note:"빨간색 iso-lateral row 머신"},{name:"DY 로우",detail:"양쪽 7.5kg씩 x 15개",note:"빨간색 언더그립 로우 머신"},{name:"MTS 로우",detail:"7.5kg x 15개",note:"검정색, 팔꿈치 일직선으로 당기기"},{name:"풀오버",detail:"15kg x 15개",note:""},{name:"티바로우 언더",detail:"무게없이 x 15개",note:""},{name:"암풀다운",detail:"5kg x 15개",note:""},{name:"케이블 와이드 풀다운",detail:"4.375kg x 15개",note:""},{name:"Y레이즈",detail:"15개",note:"긴 빨간색 끈"},{name:"MTS 프론트풀다운",detail:"10kg x 15개",note:"",stopped:true},{name:"어시스트 풀업",detail:"43.75kg x 15개",note:"",stopped:true}],어깨:[{name:"리버스펙덱플라이",detail:"7.5kg x 15개",note:""},{name:"MTS 숄더프레스",detail:"5kg x 15개",note:""},{name:"덤벨 숄더프레스",detail:"2kg씩 x 15개",note:""},{name:"사이드레터럴레이즈",detail:"2kg씩 x 15개",note:""},{name:"사이드레터럴레이즈 프론트",detail:"2kg씩 x 15개",note:""},{name:"벤트오버레이즈",detail:"1kg씩 x 15개",note:""},{name:"케이블 어깨 후면 운동",detail:"1.25kg x 15개씩",note:""},{name:"페이스풀",detail:"5kg x 15개",note:""}],팔:[{name:"바이셉스컬 머신",detail:"12.5kg x 15개",note:"의자 높이 6까지 보이게"},{name:"덤벨 킥백",detail:"2kg씩 x 15개",note:""},{name:"덤벨 컬",detail:"2kg씩 x 15개",note:""},{name:"케이블 푸쉬다운",detail:"6.875kg x 20개",note:"그립 손으로 말아서 잡고 누르기"}],가슴:[{name:"체스트프레스",detail:"10kg x 15개",note:""},{name:"체스트 플라이",detail:"12kg x 15개",note:""},{name:"디클라인 프레스",detail:"5kg x 15개",note:""},{name:"벤치 프레스",detail:"무게 미정",note:""}],복근:[{name:"어시스트레그레이즈",detail:"20개",note:""},{name:"레그레이즈",detail:"미정",note:""},{name:"크런치",detail:"미정",note:""},{name:"데드 버그",detail:"미정",note:""}]};
 const PARTS=Object.keys(DEF);
-const WT_DEF=["하체","등","어깨","팔","가슴","복근","유산소","계단","수영","러닝"];
+const WT_DEF=["하체","등","어깨","팔","가슴","복근","계단"];
 
 function ls(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}}
 function ss(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
@@ -364,6 +360,8 @@ function loadAll(){
   if(s){data=s.data;usedSets=Object.fromEntries(Object.entries(s.used).map(([k,v])=>[k,new Set(v)]));curPart=s.curPart||PARTS[0];wtypes=s.wtypes||WT_DEF.map(t=>({label:t,sel:false}));PARTS.forEach(p=>{if(!data[p])data[p]=JSON.parse(JSON.stringify(DEF[p]));if(!usedSets[p])usedSets[p]=new Set()});}
   else{data=JSON.parse(JSON.stringify(DEF));usedSets=Object.fromEntries(PARTS.map(p=>[p,new Set()]));curPart=PARTS[0];wtypes=WT_DEF.map(t=>({label:t,sel:false}));}
   history=ls('wp_h')||[];
+  // 수영/러닝 제거 마이그레이션
+  wtypes=wtypes.filter(t=>t.label!=='수영'&&t.label!=='러닝');
   // template
   const defaultTpl={
     wtypes:["하체","등","어깨","팔","가슴","복근","계단"].map(t=>({label:t,sel:false})),
@@ -385,12 +383,7 @@ function renderTpl(){
   document.getElementById('tpl-wttags').innerHTML=tpl.wtypes.map((t,i)=>
     `<span class="wttag${t.sel?' sel':''}" onclick="tglTplWt(${i})" style="position:relative">${t.label}<span onclick="event.stopPropagation();delTplWt(${i})" style="margin-left:5px;font-size:13px;opacity:.5;vertical-align:middle">×</span></span>`
   ).join('');
-  // parts
-  const parts=Object.keys(data);
-  document.getElementById('tpl-parts').innerHTML=parts.map(p=>{
-    const sel=(tpl.parts||[]).includes(p);
-    return `<span onclick="tglTplPart('${p}')" style="padding:5px 13px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid var(--border2);background:${sel?'var(--text)':'var(--bg)'};color:${sel?'var(--bg)':'var(--text2)'};user-select:none">${p}</span>`;
-  }).join('');
+  // parts section removed
   // memo
   document.getElementById('tpl-memo').value=tpl.memo||'';
 }
@@ -406,6 +399,14 @@ function tglTplPart(p){
   const idx=tpl.parts.indexOf(p);
   if(idx>=0)tpl.parts.splice(idx,1);else tpl.parts.push(p);
   renderTpl();
+}
+function tglTplSection(){
+  const sec=document.getElementById('tpl-section');
+  const btn=document.getElementById('tpl-toggle-btn');
+  const open=sec.style.display==='none';
+  sec.style.display=open?'block':'none';
+  btn.textContent=open?'접기':'펼치기';
+  if(open)renderTpl();
 }
 function saveTpl(){
   tpl.memo=document.getElementById('tpl-memo').value;
@@ -426,12 +427,12 @@ function fmt(ms){const t=Math.floor(ms/1e3);return`${String(Math.floor(t/60)).pa
 
 // ── Views ──
 function showView(v){
-  document.querySelectorAll('.vtab').forEach((t,i)=>t.classList.toggle('active',['list','record','history','template'][i]===v));
-  ['list','record','history','template'].forEach(p=>document.getElementById('page-'+p).classList.toggle('active',p===v));
+  document.querySelectorAll('.vtab').forEach((t,i)=>t.classList.toggle('active',['list','record','history'][i]===v));
+  ['list','record','history'].forEach(p=>document.getElementById('page-'+p).classList.toggle('active',p===v));
   document.getElementById('bbar').style.display=v==='list'?'block':'none';
   document.getElementById('nav-bottom').style.display=v==='list'?'flex':'none';
   if(v==='history')renderHist();
-  if(v==='template')renderTpl();
+
 }
 
 // ── Part tabs ──
