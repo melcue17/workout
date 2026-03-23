@@ -361,7 +361,7 @@ function loadAll(){
   else{data=JSON.parse(JSON.stringify(DEF));usedSets=Object.fromEntries(PARTS.map(p=>[p,new Set()]));curPart=PARTS[0];wtypes=WT_DEF.map(t=>({label:t,sel:false}));}
   history=ls('wp_h')||[];
   // 수영/러닝 제거 마이그레이션
-  wtypes=wtypes.filter(t=>t.label!=='수영'&&t.label!=='러닝');
+  wtypes=wtypes.filter(t=>t.label!=='수영'&&t.label!=='러닝'&&t.label!=='유산소');
   // template
   const defaultTpl={
     wtypes:["하체","등","어깨","팔","가슴","복근","계단"].map(t=>({label:t,sel:false})),
