@@ -698,14 +698,19 @@ function delWt(i){wtypes.splice(i,1);openWtEdit();renderWt()}
 function applyTplToRecord(){
   // Apply template wtypes defaults
   if(tpl){
-    // reset then apply
-    wtypes.forEach(t=>t.sel=false);
+    // 템플릿 목록 기준으로 wtypes 완전히 재구성
+    const tplLabels=tpl.wtypes.map(t=>t.label);
+    // 템플릿에 없는 항목 제거
+    wtypes=wtypes.filter(t=>tplLabels.includes(t.label));
+    // 선택 상태 초기화 후 템플릿 기준으로 적용
+    wtypes.forEach(t=>{
+      const tw=tpl.wtypes.find(x=>x.label===t.label);
+      t.sel=tw?tw.sel:false;
+    });
+    // 템플릿에만 있는 새 항목 추가
     tpl.wtypes.forEach(tw=>{
-      if(tw.sel){
-        const found=wtypes.find(w=>w.label===tw.label);
-        if(found)found.sel=true;
-        else wtypes.push({label:tw.label,sel:true});
-      }
+      if(!wtypes.find(w=>w.label===tw.label))
+        wtypes.push({label:tw.label,sel:tw.sel});
     });
     renderWt();
     // set memo if exists
