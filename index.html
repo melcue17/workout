@@ -210,7 +210,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
       <button class="vtab" onclick="showView('record')">기록지</button>
       <button class="vtab" onclick="showView('history')">히스토리</button>
     </div>
-    <div style="display:flex;align-items:center;gap:6px">
+    <div id="nav-bottom" style="display:flex;align-items:center;gap:6px">
       <div class="ptabs" id="ptabs" style="flex:1"></div>
       <button onclick="openPartMgr()" style="flex-shrink:0;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);font-size:12px;font-weight:500;background:var(--bg);color:var(--text2);cursor:pointer;white-space:nowrap;margin-bottom:10px">부위 관리</button>
     </div>
@@ -250,7 +250,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
       <div class="wt-area">
         <div class="wtrow" id="wttags"></div>
         <div class="wt-edit-form">
-          <input class="wtinp" id="wtinp" placeholder="직접 입력">
+          <input class="wtinp" id="wtinp" placeholder="">
           <button class="wtaddb" onclick="addWt()">추가</button>
         </div>
       </div>
@@ -262,6 +262,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
       <div class="divider"></div>
       <div class="slbl" id="rpartlbl">운동</div>
       <div id="rcards"></div>
+      <div id="rec-tpl-memo" style="display:none;padding:10px 12px;background:var(--bg2);border-radius:var(--rs);margin-bottom:12px;font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.6"></div>
       <div class="divider"></div>
       <div class="racbtns">
         <button class="resetbtn" onclick="resetRecord()">초기화</button>
@@ -269,8 +270,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
       </div>
       <div class="hint" id="rechint"></div>
     </div>
-    <!-- HISTORY -->
-    <div class="page" id="page-history">
+  <!-- TEMPLATE -->
+  <div class="page" id="page-template">
+    <div class="px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 4px">
+        <span style="font-size:16px;font-weight:700">기록지 템플릿</span>
+      </div>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px;line-height:1.6">여기서 설정한 내용이 새 기록지의 기본값이 돼요. 기존 기록은 변경되지 않아요.</p>
+      <div class="slbl">운동 종류 기본값 <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">선택된 항목이 기록지에 자동 체크돼요</span></div>
+      <div class="wtrow" id="tpl-wttags"></div>
+      <div class="wt-edit-form">
+        <input class="wtinp" id="tpl-wtinp" placeholder="">
+        <button class="wtaddb" onclick="addTplWt()">추가</button>
+      </div>
+      <div class="divider"></div>
+      <div class="slbl">부위 기본 선택 <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">탭해서 선택/해제</span></div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:10px">기록지 열 때 이 부위들의 운동이 자동으로 표시돼요.</p>
+      <div id="tpl-parts" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+      <div class="divider"></div>
+      <div class="slbl">메모 기본값</div>
+      <textarea id="tpl-memo" placeholder="매번 기록지에 포함할 메모 (예: 오늘의 목표, 주의사항 등)" style="width:100%;padding:10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text);resize:vertical;min-height:80px;font-family:inherit;line-height:1.6"></textarea>
+      <div class="divider"></div>
+      <button onclick="saveTpl()" style="width:100%;padding:14px;border-radius:var(--r);border:none;font-size:15px;font-weight:700;cursor:pointer;background:var(--text);color:var(--bg);margin-bottom:8px">템플릿 저장</button>
+      <div class="hint" id="tpl-hint"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="page" id="page-history">
       <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 10px">
         <span style="font-size:16px;font-weight:700">운동 기록</span>
         <span id="hcnt" style="font-size:12px;color:var(--text3)"></span>
@@ -298,7 +325,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px">드래그로 순서 변경 · 이름 수정 · 삭제 가능</div>
     <div id="pm-list"></div>
     <div style="display:flex;gap:8px;margin-top:12px">
-      <input id="pm-new-inp" class="part-mgr-inp" placeholder="새 부위 이름 (예: 스트레칭)">
+      <input id="pm-new-inp" class="part-mgr-inp" placeholder="">
       <button class="pmb ok" onclick="addPart()">추가</button>
     </div>
   </div>
@@ -328,6 +355,7 @@ const WT_DEF=["하체","등","어깨","팔","가슴","복근","유산소","계�
 function ls(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}}
 function ss(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 function saveAll(){
+  ss('wp_tpl',tpl);
   ss('wp_s',{data,used:Object.fromEntries(Object.entries(usedSets).map(([k,v])=>[k,[...v]])),curPart,wtypes});
   ss('wp_h',history);
 }
@@ -336,6 +364,13 @@ function loadAll(){
   if(s){data=s.data;usedSets=Object.fromEntries(Object.entries(s.used).map(([k,v])=>[k,new Set(v)]));curPart=s.curPart||PARTS[0];wtypes=s.wtypes||WT_DEF.map(t=>({label:t,sel:false}));PARTS.forEach(p=>{if(!data[p])data[p]=JSON.parse(JSON.stringify(DEF[p]));if(!usedSets[p])usedSets[p]=new Set()});}
   else{data=JSON.parse(JSON.stringify(DEF));usedSets=Object.fromEntries(PARTS.map(p=>[p,new Set()]));curPart=PARTS[0];wtypes=WT_DEF.map(t=>({label:t,sel:false}));}
   history=ls('wp_h')||[];
+  // template
+  const defaultTpl={
+    wtypes:["하체","등","어깨","팔","가슴","복근","계단"].map(t=>({label:t,sel:false})),
+    parts:[],
+    memo:''
+  };
+  tpl=ls('wp_tpl')||defaultTpl;
 }
 let data,usedSets,curPart,history,wtypes;
 loadAll();
@@ -343,22 +378,60 @@ loadAll();
 // sel: array of {part, idx} objects (cross-part selection)
 let sel=[], editIdx=null, setChk={}, sw={}, addOpen=false;
 
+// ── Template ──
+function renderTpl(){
+  if(!tpl)return;
+  // wt tags
+  document.getElementById('tpl-wttags').innerHTML=tpl.wtypes.map((t,i)=>
+    `<span class="wttag${t.sel?' sel':''}" onclick="tglTplWt(${i})" style="position:relative">${t.label}<span onclick="event.stopPropagation();delTplWt(${i})" style="margin-left:5px;font-size:13px;opacity:.5;vertical-align:middle">×</span></span>`
+  ).join('');
+  // parts
+  const parts=Object.keys(data);
+  document.getElementById('tpl-parts').innerHTML=parts.map(p=>{
+    const sel=(tpl.parts||[]).includes(p);
+    return `<span onclick="tglTplPart('${p}')" style="padding:5px 13px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid var(--border2);background:${sel?'var(--text)':'var(--bg)'};color:${sel?'var(--bg)':'var(--text2)'};user-select:none">${p}</span>`;
+  }).join('');
+  // memo
+  document.getElementById('tpl-memo').value=tpl.memo||'';
+}
+function tglTplWt(i){tpl.wtypes[i].sel=!tpl.wtypes[i].sel;renderTpl()}
+function delTplWt(i){tpl.wtypes.splice(i,1);renderTpl()}
+function addTplWt(){
+  const val=document.getElementById('tpl-wtinp').value.trim();if(!val)return;
+  if(!tpl.wtypes.find(t=>t.label===val))tpl.wtypes.push({label:val,sel:true});
+  document.getElementById('tpl-wtinp').value='';renderTpl();
+}
+function tglTplPart(p){
+  if(!tpl.parts)tpl.parts=[];
+  const idx=tpl.parts.indexOf(p);
+  if(idx>=0)tpl.parts.splice(idx,1);else tpl.parts.push(p);
+  renderTpl();
+}
+function saveTpl(){
+  tpl.memo=document.getElementById('tpl-memo').value;
+  saveAll();
+  const h=document.getElementById('tpl-hint');
+  h.textContent='저장됐어요!';h.style.color='var(--green)';
+  setTimeout(()=>{h.textContent='';h.style.color=''},2000);
+}
 // ── Stopwatch ──
 function swKey(p,i){return p+'::'+i}
 function swG(p,i){const k=swKey(p,i);if(!sw[k])sw[k]={e:0,ts:null,laps:[],iv:null};return sw[k]}
 function swRun(p,i){return!!swG(p,i).ts}
 function swCur(p,i){const s=swG(p,i);return s.ts?s.e+(Date.now()-s.ts):s.e}
 function swStart(p,i){const s=swG(p,i);if(s.ts)return;s.ts=Date.now();s.iv=setInterval(()=>{const d=document.getElementById('sw_'+p+'_'+i);if(d)d.textContent=fmt(swCur(p,i))},500);renderRC()}
-function swStop(p,i){const s=swG(p,i);if(!s.ts)return;s.laps.push(s.e+(Date.now()-s.ts));s.e=s.laps[s.laps.length-1];clearInterval(s.iv);s.ts=null;renderRC()}
+function swStop(p,i){const s=swG(p,i);if(!s.ts)return;s.e=s.e+(Date.now()-s.ts);clearInterval(s.iv);s.ts=null;renderRC()}
 function swRst(p,i){const s=swG(p,i);clearInterval(s.iv);sw[swKey(p,i)]={e:0,ts:null,laps:[],iv:null};renderRC()}
 function fmt(ms){const t=Math.floor(ms/1e3);return`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`}
 
 // ── Views ──
 function showView(v){
-  document.querySelectorAll('.vtab').forEach((t,i)=>t.classList.toggle('active',['list','record','history'][i]===v));
-  ['list','record','history'].forEach(p=>document.getElementById('page-'+p).classList.toggle('active',p===v));
+  document.querySelectorAll('.vtab').forEach((t,i)=>t.classList.toggle('active',['list','record','history','template'][i]===v));
+  ['list','record','history','template'].forEach(p=>document.getElementById('page-'+p).classList.toggle('active',p===v));
   document.getElementById('bbar').style.display=v==='list'?'block':'none';
+  document.getElementById('nav-bottom').style.display=v==='list'?'flex':'none';
   if(v==='history')renderHist();
+  if(v==='template')renderTpl();
 }
 
 // ── Part tabs ──
@@ -618,11 +691,35 @@ function saveWtEdit(i){const v=document.getElementById(`wte${i}`).value.trim();i
 function delWt(i){wtypes.splice(i,1);openWtEdit();renderWt()}
 
 // ── Go to record ──
+function applyTplToRecord(){
+  // Apply template wtypes defaults
+  if(tpl){
+    // reset then apply
+    wtypes.forEach(t=>t.sel=false);
+    tpl.wtypes.forEach(tw=>{
+      if(tw.sel){
+        const found=wtypes.find(w=>w.label===tw.label);
+        if(found)found.sel=true;
+        else wtypes.push({label:tw.label,sel:true});
+      }
+    });
+    renderWt();
+    // set memo if exists
+    if(tpl.memo){
+      const el=document.getElementById('rec-tpl-memo');
+      if(el){el.textContent=tpl.memo;el.style.display='block';}
+    } else {
+      const el=document.getElementById('rec-tpl-memo');
+      if(el)el.style.display='none';
+    }
+  }
+}
 function goRecord(){
   if(!sel.length){alert('운동을 먼저 선택해주세요!');return}
   const k=sel.map(s=>s.part+'::'+s.idx).join('|');
   sel.forEach(s=>{if(!setChk[k+s.part+s.idx])setChk[s.part+'::'+s.idx]=[false,false,false,false]});
   document.getElementById('rdate').value=new Date().toISOString().split('T')[0];
+  applyTplToRecord();
   // auto-select parts in wtypes
   const parts=[...new Set(sel.map(s=>s.part))];
   wtypes.forEach(t=>{if(parts.includes(t.label))t.sel=true});
@@ -640,7 +737,7 @@ function renderRC(){
     const key=s.part+'::'+s.idx;
     const chk=setChk[key]||[false,false,false,false];
     const sw_=swG(s.part,s.idx),run=swRun(s.part,s.idx);
-    const lH=sw_.laps.map((l,li)=>`<span class="lap${li===sw_.laps.length-1?' lat':''}">${li+1}번째 ${fmt(l)}</span>`).join('');
+    const lH='';
     const sets=chk.map((c,si)=>`<div class="si" onclick="tglSet('${s.part}',${s.idx},${si})"><div class="sb${c?' chk':''}">
       ${c?`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${isDark()?'#111':'#fff'}" stroke-width="2.5"><polyline points="4,12 9,17 20,7"/></svg>`:''}</div><span class="slb">${si+1}세트</span></div>`).join('');
     return `<div class="rcard${run?' run':''}">
@@ -656,10 +753,10 @@ function renderRC(){
             ${!run?`<button class="swb go" onclick="swStart('${s.part}',${s.idx})"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>`:`<button class="swb stop" onclick="swStop('${s.part}',${s.idx})"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></button>`}
             <button class="swb rst" onclick="swRst('${s.part}',${s.idx})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg></button>
           </div>
-          ${sw_.laps.length?`<div class="swttl">합계 ${fmt(sw_.e)}</div>`:''}
+
         </div>
       </div>
-      ${sw_.laps.length?`<div class="laps">${lH}</div>`:''}
+
       <div class="srow">${sets}</div>
     </div>`;
   }).join('');
@@ -686,7 +783,7 @@ function saveRec(){
   sel.forEach(s=>{if(swRun(s.part,s.idx))swStop(s.part,s.idx)});
   const dateVal=document.getElementById('rdate').value,tS=document.getElementById('ts').value||'--:--',tE=document.getElementById('te').value||'--:--',tC=document.getElementById('tc').value||'--:--';
   const selWt=wtypes.filter(t=>t.sel).map(t=>t.label);
-  const exercises=sel.map(s=>{const ex=data[s.part][s.idx],key=s.part+'::'+s.idx,c=setChk[key]||[false,false,false,false],sw_=swG(s.part,s.idx);return{name:ex.name,detail:ex.detail,note:ex.note,part:s.part,sets:c,laps:[...sw_.laps]}});
+  const exercises=sel.map(s=>{const ex=data[s.part][s.idx],key=s.part+'::'+s.idx,c=setChk[key]||[false,false,false,false],sw_=swG(s.part,s.idx);return{name:ex.name,detail:ex.detail,note:ex.note,part:s.part,sets:c,elapsed:sw_.e}});
   history.unshift({id:Date.now(),date:dateVal,wtypes:selWt,tStart:tS,tEnd:tE,tCardio:tC,exercises});
   // mark used per part
   sel.forEach(s=>{
@@ -726,7 +823,7 @@ document.getElementById('hto').addEventListener('change',renderHist);
 
 function showDetail(ri){
   const r=history[ri];
-  document.getElementById('mcontent').innerHTML=`<div class="mddate">${fmtD(r.date)}</div>${(r.wtypes||[]).length?`<div class="mdwtags">${(r.wtypes||[]).map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}<div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>${r.exercises.map(e=>`<div class="mdex"><div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--bg2);color:var(--text2);margin-left:6px">${e.part}</span>`:''}</div><div class="mddt">${e.detail}${e.note?` · ${e.note}`:''}</div><div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'✓':'○'}`).join('  ')}</div>${e.laps&&e.laps.length?`<div class="mdtime">⏱ ${e.laps.map((l,li)=>`${li+1}번째 ${fmt(l)}`).join(' / ')}</div>`:''}</div>`).join('')}<button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>`;
+  document.getElementById('mcontent').innerHTML=`<div class="mddate">${fmtD(r.date)}</div>${(r.wtypes||[]).length?`<div class="mdwtags">${(r.wtypes||[]).map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}<div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>${r.exercises.map(e=>`<div class="mdex"><div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--bg2);color:var(--text2);margin-left:6px">${e.part}</span>`:''}</div><div class="mddt">${e.detail}${e.note?` · ${e.note}`:''}</div><div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'✓':'○'}`).join('  ')}</div>${e.elapsed?`<div class="mdtime">⏱ ${fmt(e.elapsed)}</div>`:''}</div>`).join('')}<button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>`;
   document.getElementById('mbg').style.display='flex';
 }
 function delRec(ri){if(!confirm('이 기록을 삭제할까요?'))return;history.splice(ri,1);saveAll();hideModal();renderHist()}
