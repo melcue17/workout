@@ -139,6 +139,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .swb.go{border-color:var(--green);color:var(--green)}
 .swb.stop{border-color:var(--red);color:var(--red)}
 .swb.rst{color:var(--text3)}
+.sw-manual{display:flex;align-items:center;gap:5px;margin-top:6px}
+.sw-manual-inp{width:72px;padding:4px 7px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text);text-align:center;font-variant-numeric:tabular-nums}
+.sw-manual-inp:focus{outline:none;border-color:var(--green)}
+.sw-manual-lbl{font-size:11px;color:var(--text3)}
 .laps{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
 .lap{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--bg2);color:var(--text2)}
 .lap.lat{background:var(--gbg);color:var(--gtxt)}
@@ -151,6 +155,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .slb{font-size:11px;color:var(--text3)}
 /* record actions */
 .racbtns{display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.tmpbtn{padding:13px 14px;border-radius:var(--r);border:1.5px solid var(--green);font-size:14px;font-weight:600;cursor:pointer;background:var(--bg);color:var(--green);white-space:nowrap}
 .savebtn{flex:1;padding:13px;border-radius:var(--r);border:none;font-size:14px;font-weight:700;cursor:pointer;background:var(--text);color:var(--bg)}
 .savebtn:active{opacity:.7}
 .resetbtn{padding:13px 16px;border-radius:var(--r);border:1px solid var(--border2);font-size:14px;cursor:pointer;background:var(--bg);color:var(--text2)}
@@ -244,6 +249,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
     </div>
     <!-- RECORD -->
     <div class="page" id="page-record">
+      <div id="tmp-banner" style="display:none;padding:8px 12px;border-radius:var(--rs);background:var(--gbg);color:var(--gtxt);font-size:12px;margin-bottom:10px;align-items:center;justify-content:space-between">
+        <span id="tmp-banner-txt"></span>
+        <button onclick="loadTmp()" style="font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--green);background:var(--bg);color:var(--green);cursor:pointer">불러오기</button>
+      </div>
       <div class="slbl">날짜</div>
       <div class="drow"><input class="dinp" type="date" id="rdate"></div>
       <div class="slbl">운동 종류 <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:4px">탭해서 선택 · 길게 눌러 수정/삭제</span></div>
@@ -288,6 +297,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
       <div class="divider"></div>
       <div class="racbtns">
         <button class="resetbtn" onclick="resetRecord()">초기화</button>
+        <button class="tmpbtn" onclick="tmpSave()">임시저장</button>
         <button class="savebtn" onclick="saveRec()">저장 & 완료</button>
       </div>
       <div class="hint" id="rechint"></div>
@@ -425,7 +435,27 @@ function swRun(p,i){return!!swG(p,i).ts}
 function swCur(p,i){const s=swG(p,i);return s.ts?s.e+(Date.now()-s.ts):s.e}
 function swStart(p,i){const s=swG(p,i);if(s.ts)return;s.ts=Date.now();s.iv=setInterval(()=>{const d=document.getElementById('sw_'+p+'_'+i);if(d)d.textContent=fmt(swCur(p,i))},500);renderRC()}
 function swStop(p,i){const s=swG(p,i);if(!s.ts)return;s.e=s.e+(Date.now()-s.ts);clearInterval(s.iv);s.ts=null;renderRC()}
-function swRst(p,i){const s=swG(p,i);clearInterval(s.iv);sw[swKey(p,i)]={e:0,ts:null,laps:[],iv:null};renderRC()}
+function swRst(p,i){
+  const s=swG(p,i);clearInterval(s.iv);sw[swKey(p,i)]={e:0,ts:null,laps:[],iv:null};
+  const inp=document.getElementById('sw-inp_'+p+'_'+i);if(inp)inp.value='';
+function setManualTime(p,i,val){
+  val=val.trim();
+  let ms=0;
+  if(val.includes(':')){
+    const parts=val.split(':');
+    const mins=parseInt(parts[0])||0;
+    const secs=parseInt(parts[1])||0;
+    ms=(mins*60+secs)*1000;
+  } else {
+    ms=(parseInt(val)||0)*1000;
+  }
+  const s=swG(p,i);
+  clearInterval(s.iv);s.ts=null;s.iv=null;s.e=ms;
+  const disp=document.getElementById('sw_'+p+'_'+i);
+  if(disp)disp.textContent=fmt(ms);
+  const inp=document.getElementById('sw-inp_'+p+'_'+i);
+  if(inp)inp.value=ms>0?fmt(ms):'';
+};renderRC()}
 function fmt(ms){const t=Math.floor(ms/1e3);return`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`}
 
 // ── Views ──
@@ -727,6 +757,12 @@ function goRecord(){
   if(!sel.length){alert('운동을 먼저 선택해주세요!');return}
   const k=sel.map(s=>s.part+'::'+s.idx).join('|');
   sel.forEach(s=>{if(!setChk[k+s.part+s.idx])setChk[s.part+'::'+s.idx]=[false,false,false,false]});
+  // 기록지 시작 시점 스냅샷 - 이후 중량/메모 수정해도 기록지엔 반영 안 됨
+  recExSnap={};
+  sel.forEach(s=>{
+    const ex=data[s.part]&&data[s.part][s.idx];
+    if(ex)recExSnap[s.part+'::'+s.idx]={name:ex.name,detail:ex.detail,note:ex.note};
+  });
   document.getElementById('rdate').value=new Date().toISOString().split('T')[0];
   applyTplToRecord();
   // auto-select parts in wtypes
@@ -762,6 +798,14 @@ function renderRC(){
             ${!run?`<button class="swb go" onclick="swStart('${s.part}',${s.idx})"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>`:`<button class="swb stop" onclick="swStop('${s.part}',${s.idx})"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></button>`}
             <button class="swb rst" onclick="swRst('${s.part}',${s.idx})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg></button>
           </div>
+          <div class="sw-manual">
+            <input class="sw-manual-inp" id="sw-inp_${s.part}_${s.idx}"
+              placeholder="00:00"
+              value="${sw_.e>0?fmt(sw_.e):''}"
+              onchange="setManualTime('${s.part}',${s.idx},this.value)"
+              onclick="event.stopPropagation()">
+            <span class="sw-manual-lbl">직접 입력</span>
+          </div>
 
         </div>
       </div>
@@ -786,21 +830,104 @@ function resetRecord(){
 }
 
 // ── Save record ──
+function buildRecSnapshot(){
+  // 현재 기록지 상태를 스냅샷으로 만들기
+  const exercises=sel.map(s=>{
+    const _ex=data[s.part]&&data[s.part][s.idx];const ex=recExSnap[s.part+'::'+s.idx]||_ex;if(!ex)return null;
+    const key=s.part+'::'+s.idx;
+    const c=setChk[key]||[false,false,false,false];
+    const sw_=swG(s.part,s.idx);
+    return{name:ex.name,detail:ex.detail,note:ex.note,part:s.part,sets:c,elapsed:sw_.e};
+  }).filter(Boolean);
+  return{
+    date:document.getElementById('rdate').value,
+    wtypes:wtypes.filter(t=>t.sel).map(t=>t.label),
+    tStart:document.getElementById('ts').value||'--:--',
+    tEnd:document.getElementById('te').value||'--:--',
+    tCardio:document.getElementById('tc').value||'--:--',
+    exercises,
+    sel:[...sel],
+    setChk:JSON.parse(JSON.stringify(setChk)),
+  };
+}
+
+function tmpSave(){
+  const snap=buildRecSnapshot();
+  const now=new Date();
+  const timeStr=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  snap.tmpTime=timeStr;
+  snap.isTemp=true;
+  // 기존 임시저장 항목 교체 or 새로 추가
+  const existIdx=history.findIndex(r=>r.isTemp);
+  if(existIdx>=0) history.splice(existIdx,1,{id:Date.now(),...snap});
+  else history.unshift({id:Date.now(),...snap});
+  saveAll();
+  showTmpBanner(timeStr);
+  const h=document.getElementById('rechint');
+  h.textContent=`임시저장됐어요 (${timeStr})`;
+  h.style.color='var(--green)';
+  setTimeout(()=>{h.textContent='';h.style.color=''},2500);
+}
+
+function showTmpBanner(timeStr){
+  const b=document.getElementById('tmp-banner');
+  if(b){
+    b.style.display='flex';
+    document.getElementById('tmp-banner-txt').textContent=`임시저장 ${timeStr} · 불러오기로 이어서 작성할 수 있어요`;
+  }
+}
+
+function loadTmp(){
+  const snap=history.find(r=>r.isTemp);
+  if(!snap){alert('임시저장된 기록이 없어요');return;}
+  // 날짜/시간 복원
+  document.getElementById('rdate').value=snap.date||'';
+  document.getElementById('ts').value=snap.tStart!=='--:--'?snap.tStart:'';
+  document.getElementById('te').value=snap.tEnd!=='--:--'?snap.tEnd:'';
+  document.getElementById('tc').value=snap.tCardio!=='--:--'?snap.tCardio:'';
+  // 운동종류 복원
+  wtypes.forEach(t=>t.sel=false);
+  (snap.wtypes||[]).forEach(label=>{
+    const found=wtypes.find(w=>w.label===label);
+    if(found)found.sel=true; else wtypes.push({label,sel:true});
+  });
+  renderWt();
+  // sel/setChk 복원
+  sel=snap.sel||[];
+  setChk=snap.setChk||{};
+  sel.forEach(s=>{if(!setChk[s.part+'::'+s.idx])setChk[s.part+'::'+s.idx]=[false,false,false,false]});
+  renderRC();
+  const h=document.getElementById('rechint');
+  h.textContent='임시저장 내용을 불러왔어요!';
+  h.style.color='var(--green)';
+  setTimeout(()=>{h.textContent='';h.style.color=''},2500);
+}
+
+function checkTmpOnOpen(){
+  const snap=history.find(r=>r.isTemp);
+  if(snap) showTmpBanner(snap.tmpTime||'');
+}
+
 function saveRec(){
   if(!sel.length){alert('선택된 운동이 없어요');return}
   if(!sel.every(s=>{const k=s.part+'::'+s.idx;return setChk[k]&&setChk[k].every(Boolean)})&&!confirm('완료 안 된 세트가 있어요. 저장할까요?'))return;
   sel.forEach(s=>{if(swRun(s.part,s.idx))swStop(s.part,s.idx)});
   const dateVal=document.getElementById('rdate').value,tS=document.getElementById('ts').value||'--:--',tE=document.getElementById('te').value||'--:--',tC=document.getElementById('tc').value||'--:--';
   const selWt=wtypes.filter(t=>t.sel).map(t=>t.label);
-  const exercises=sel.map(s=>{const ex=data[s.part][s.idx],key=s.part+'::'+s.idx,c=setChk[key]||[false,false,false,false],sw_=swG(s.part,s.idx);return{name:ex.name,detail:ex.detail,note:ex.note,part:s.part,sets:c,elapsed:sw_.e}});
+  const exercises=sel.map(s=>{const _rx=data[s.part]&&data[s.part][s.idx];const ex=recExSnap[s.part+'::'+s.idx]||_rx;const key=s.part+'::'+s.idx,c=setChk[key]||[false,false,false,false],sw_=swG(s.part,s.idx);return ex?{name:ex.name,detail:ex.detail,note:ex.note,part:s.part,sets:c,elapsed:sw_.e}:null}).filter(Boolean);
+  // 임시저장 항목 제거
+  const tmpIdx=history.findIndex(r=>r.isTemp);
+  if(tmpIdx>=0) history.splice(tmpIdx,1);
   history.unshift({id:Date.now(),date:dateVal,wtypes:selWt,tStart:tS,tEnd:tE,tCardio:tC,exercises});
+  // 임시저장 배너 숨기기
+  const tb=document.getElementById('tmp-banner');if(tb)tb.style.display='none';
   // mark used per part
   sel.forEach(s=>{
     usedSets[s.part].add(s.idx);
     const total=data[s.part].filter(x=>!x.stopped).length;
     if(usedSets[s.part].size>=total)usedSets[s.part]=new Set();
   });
-  wtypes.forEach(t=>t.sel=false);sel=[];setChk={};sw={};
+  wtypes.forEach(t=>t.sel=false);sel=[];setChk={};sw={};recExSnap={};
   document.getElementById('rechint').textContent='저장됐어요! 히스토리에서 확인할 수 있어요.';
   setTimeout(()=>document.getElementById('rechint').textContent='',3000);
   renderRC();saveAll();
@@ -818,8 +945,8 @@ function renderHist(){
   if(!filtered.length){area.innerHTML='<div class="hempty">해당 기간에 저장된 기록이 없어요.</div>';return}
   area.innerHTML=filtered.map((r,ri)=>{
     const realIdx=history.indexOf(r);
-    return `<div class="hcard" onclick="showDetail(${realIdx})">
-      <div class="hctop"><span class="hdate">${fmtD(r.date)}</span></div>
+    return `<div class="hcard${r.isTemp?' tmp-card':''}" onclick="showDetail(${realIdx})">
+      <div class="hctop"><span class="hdate">${fmtD(r.date)}</span>${r.isTemp?'<span style="font-size:11px;padding:2px 8px;border-radius:8px;background:var(--gbg);color:var(--gtxt)">임시저장</span>':''}</div>
       ${(r.wtypes||[]).length?`<div class="hwtags">${(r.wtypes||[]).map(t=>`<span class="hwtag">${t}</span>`).join('')}</div>`:''}
       <div class="htm">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 ${r.tCardio}`:''}</div>
       <div class="htags">${r.exercises.map(e=>`<span class="htag">${e.name}</span>`).join('')}</div>
