@@ -59,7 +59,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .exi.clickable{cursor:pointer}
 .exi.clickable:active{background:var(--bg2)}
 .exi.sel{border-color:var(--text);background:var(--bg2)}
-.exi.done{opacity:.3;pointer-events:none}
+.exi.done{opacity:.35}
 .exi.stp{opacity:.38}
 .exi.dragging{opacity:.5;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:50}
 .exi.drag-over{border-color:var(--green);border-width:2px}
@@ -132,17 +132,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .rdt{font-size:12px;color:var(--text2);margin-top:2px}
 .rnt{font-size:11px;color:var(--text3);margin-top:2px;font-style:italic}
 .swcol{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
-.swt{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.5px;min-width:74px;text-align:right;color:var(--text)}
-.swt.run{color:var(--green)}
+.swt{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.5px;width:82px;text-align:center;color:var(--text);background:none;border:none;border-bottom:1.5px solid var(--border2);border-radius:0;padding:2px 4px;font-family:inherit;cursor:text}
+.swt:focus{outline:none;border-bottom-color:var(--green)}
+.swt.run{color:var(--green);border-bottom-color:var(--green)}
 .swbs{display:flex;gap:6px}
 .swb{width:34px;height:34px;border-radius:50%;border:1px solid var(--border2);background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .swb.go{border-color:var(--green);color:var(--green)}
 .swb.stop{border-color:var(--red);color:var(--red)}
 .swb.rst{color:var(--text3)}
-.sw-manual{display:flex;align-items:center;gap:5px;margin-top:6px}
-.sw-manual-inp{width:72px;padding:4px 7px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text);text-align:center;font-variant-numeric:tabular-nums}
-.sw-manual-inp:focus{outline:none;border-color:var(--green)}
-.sw-manual-lbl{font-size:11px;color:var(--text3)}
+
 .laps{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
 .lap{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--bg2);color:var(--text2)}
 .lap.lat{background:var(--gbg);color:var(--gtxt)}
@@ -188,7 +186,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .mdnm{font-size:13px;font-weight:600}
 .mddt{font-size:12px;color:var(--text2);margin-top:2px}
 .mdsets{font-size:12px;color:var(--text2);margin-top:4px}
-.mdtime{font-size:12px;color:var(--green);margin-top:3px}
+.mdtime{font-size:12px;color:var(--green);margin-top:3px;font-weight:500}
 .delbtn{margin-top:1rem;width:100%;padding:12px;font-size:14px;border-radius:var(--r);border:1px solid var(--dangerborder);background:var(--dangerbg);color:var(--dangertxt);cursor:pointer;font-weight:500}
 /* part manager */
 .part-mgr-row{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--border)}
@@ -433,11 +431,11 @@ function swKey(p,i){return p+'::'+i}
 function swG(p,i){const k=swKey(p,i);if(!sw[k])sw[k]={e:0,ts:null,laps:[],iv:null};return sw[k]}
 function swRun(p,i){return!!swG(p,i).ts}
 function swCur(p,i){const s=swG(p,i);return s.ts?s.e+(Date.now()-s.ts):s.e}
-function swStart(p,i){const s=swG(p,i);if(s.ts)return;s.ts=Date.now();s.iv=setInterval(()=>{const d=document.getElementById('sw_'+p+'_'+i);if(d)d.textContent=fmt(swCur(p,i))},500);renderRC()}
-function swStop(p,i){const s=swG(p,i);if(!s.ts)return;s.e=s.e+(Date.now()-s.ts);clearInterval(s.iv);s.ts=null;renderRC()}
+function swStart(p,i){const s=swG(p,i);if(s.ts)return;s.ts=Date.now();s.iv=setInterval(()=>{const d=document.getElementById('sw_'+p+'_'+i);if(d){d.value=fmt(swCur(p,i));d.readOnly=true;}},500);renderRC();const el=document.getElementById('sw_'+p+'_'+i);if(el)el.readOnly=true;}
+function swStop(p,i){const s=swG(p,i);if(!s.ts)return;s.e=s.e+(Date.now()-s.ts);clearInterval(s.iv);s.ts=null;renderRC();const el=document.getElementById('sw_'+p+'_'+i);if(el)el.readOnly=false;}
 function swRst(p,i){
   const s=swG(p,i);clearInterval(s.iv);sw[swKey(p,i)]={e:0,ts:null,laps:[],iv:null};
-  const inp=document.getElementById('sw-inp_'+p+'_'+i);if(inp)inp.value='';
+  const el=document.getElementById('sw_'+p+'_'+i);if(el){el.value='00:00';el.readOnly=false;}
 function setManualTime(p,i,val){
   val=val.trim();
   let ms=0;
@@ -453,8 +451,6 @@ function setManualTime(p,i,val){
   clearInterval(s.iv);s.ts=null;s.iv=null;s.e=ms;
   const disp=document.getElementById('sw_'+p+'_'+i);
   if(disp)disp.textContent=fmt(ms);
-  const inp=document.getElementById('sw-inp_'+p+'_'+i);
-  if(inp)inp.value=ms>0?fmt(ms):'';
 };renderRC()}
 function fmt(ms){const t=Math.floor(ms/1e3);return`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`}
 
@@ -590,14 +586,14 @@ function renderList(){
   const items=data[curPart],used=usedSets[curPart];
   document.getElementById('exlist').innerHTML=items.map((ex,i)=>{
     const isDone=used.has(i),isSel=isSelected(curPart,i),isStp=!!ex.stopped,isEd=editIdx===i;
-    let cls='exi';if(!isDone&&!isStp)cls+=' clickable';if(isSel)cls+=' sel';else if(isDone)cls+=' done';else if(isStp)cls+=' stp';
+    let cls='exi';if(!isStp)cls+=' clickable';if(isSel)cls+=' sel';else if(isDone)cls+=' done';else if(isStp)cls+=' stp';
     const badge=isStp?'<span class="badge bstp">중단</span>':isDone?'<span class="badge bdone">완료</span>':'';
     const cornerBtn=isStp?`<button class="stp-corner act" onclick="event.stopPropagation();tglStp(${i})">↺</button>`:`<button class="stp-corner" onclick="event.stopPropagation();tglStp(${i})">✕</button>`;
     const handle=`<div class="drag-handle" draggable="true" ondragstart="onDragStart(event,'${curPart}',${i})" ondragend="onDragEnd(event)" ontouchstart="onTouchStart(event,'${curPart}',${i})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/></svg></div>`;
     const edBtn=!isEd?`<button class="mb" onclick="event.stopPropagation();startEd(${i})">수정</button>`:'';
     const delBtn=`<button class="ex-del-btn" onclick="event.stopPropagation();delEx(${i})">삭제</button>`;
     const ef=isEd?`<div class="eform" onclick="event.stopPropagation()"><div class="elbl">운동 이름</div><input class="einp" id="en${i}" value="${ex.name}"><div class="elbl">중량/횟수</div><input class="einp" id="ed${i}" value="${ex.detail}"><div class="elbl">메모</div><input class="einp" id="em${i}" value="${ex.note||''}" placeholder="메모 없음"><div class="efbtns"><button class="okb" onclick="event.stopPropagation();saveEd(${i})">저장</button><button class="nob" onclick="event.stopPropagation();cancelEd()">취소</button></div></div>`:'';
-    return `<div class="${cls}" draggable="false" ondragover="onDragOver(event,${i})" ondrop="onDrop(event,'${curPart}',${i})" onclick="${!isDone&&!isStp?`tglItem('${curPart}',${i})`:''}">
+    return `<div class="${cls}" draggable="false" ondragover="onDragOver(event,${i})" ondrop="onDrop(event,'${curPart}',${i})" onclick="${!isStp?`tglItem('${curPart}',${i})`:''}">
       ${handle}
       <div class="exck">${isSel?`<svg width="11" height="11" viewBox="0 0 10 10" fill="none" stroke="${isDark()?'#111':'#fff'}" stroke-width="2"><polyline points="1.5,5 4,7.5 8.5,2.5"/></svg>`:''}</div>
       <div class="exb"><div><span class="exnm">${ex.name}</span>${badge}</div><div class="exdt">${ex.detail}</div>${ex.note?`<div class="exnt">${ex.note}</div>`:''}<div class="iacts">${edBtn}${delBtn}</div>${ef}</div>
@@ -793,19 +789,17 @@ function renderRC(){
           <div class="rdt">${ex.detail}</div>${ex.note?`<div class="rnt">${ex.note}</div>`:''}
         </div>
         <div class="swcol">
-          <div class="swt${run?' run':''}" id="sw_${s.part}_${s.idx}">${fmt(swCur(s.part,s.idx))}</div>
+          <input type="text" class="swt${run?' run':''}" id="sw_${s.part}_${s.idx}"
+            value="${fmt(swCur(s.part,s.idx))}"
+            placeholder="00:00"
+            onchange="setManualTime('${s.part}',${s.idx},this.value)"
+            onclick="event.stopPropagation()"
+            readonly="${run?'true':'false'}">
           <div class="swbs">
             ${!run?`<button class="swb go" onclick="swStart('${s.part}',${s.idx})"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg></button>`:`<button class="swb stop" onclick="swStop('${s.part}',${s.idx})"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></button>`}
             <button class="swb rst" onclick="swRst('${s.part}',${s.idx})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-5"/></svg></button>
           </div>
-          <div class="sw-manual">
-            <input class="sw-manual-inp" id="sw-inp_${s.part}_${s.idx}"
-              placeholder="00:00"
-              value="${sw_.e>0?fmt(sw_.e):''}"
-              onchange="setManualTime('${s.part}',${s.idx},this.value)"
-              onclick="event.stopPropagation()">
-            <span class="sw-manual-lbl">직접 입력</span>
-          </div>
+
 
         </div>
       </div>
@@ -959,7 +953,7 @@ document.getElementById('hto').addEventListener('change',renderHist);
 
 function showDetail(ri){
   const r=history[ri];
-  document.getElementById('mcontent').innerHTML=`<div class="mddate">${fmtD(r.date)}</div>${(r.wtypes||[]).length?`<div class="mdwtags">${(r.wtypes||[]).map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}<div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>${r.exercises.map(e=>`<div class="mdex"><div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--bg2);color:var(--text2);margin-left:6px">${e.part}</span>`:''}</div><div class="mddt">${e.detail}${e.note?` · ${e.note}`:''}</div><div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'✓':'○'}`).join('  ')}</div>${e.elapsed?`<div class="mdtime">⏱ ${fmt(e.elapsed)}</div>`:''}</div>`).join('')}<button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>`;
+  document.getElementById('mcontent').innerHTML=`<div class="mddate">${fmtD(r.date)}</div>${(r.wtypes||[]).length?`<div class="mdwtags">${(r.wtypes||[]).map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}<div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>${r.exercises.map(e=>`<div class="mdex"><div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--bg2);color:var(--text2);margin-left:6px">${e.part}</span>`:''}</div><div class="mddt">${e.detail}</div><div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'✓':'○'}`).join('  ')}${e.elapsed?' &nbsp;⏱ '+fmt(e.elapsed):''}</div></div>`).join('')}<button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>`;
   document.getElementById('mbg').style.display='flex';
 }
 function delRec(ri){if(!confirm('이 기록을 삭제할까요?'))return;history.splice(ri,1);saveAll();hideModal();renderHist()}
