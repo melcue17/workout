@@ -831,7 +831,15 @@ function buildRecSnapshot(){
     const key=s.part+'::'+s.idx;
     const c=setChk[key]||[false,false,false,false];
     const sw_=swG(s.part,s.idx);
-    return{name:ex.name,detail:ex.detail,note:ex.note,part:s.part,sets:c,elapsed:sw_.e};
+    // input에 직접 입력된 값도 반영
+    const inpEl=document.getElementById('sw_'+s.part+'_'+s.idx);
+    let elapsed=sw_.e;
+    if(inpEl&&inpEl.value&&inpEl.value!=='00:00'){
+      const v=inpEl.value.trim();
+      if(v.includes(':')){const pt=v.split(':');elapsed=(parseInt(pt[0])||0)*60000+(parseInt(pt[1])||0)*1000;}
+      else elapsed=(parseInt(v)||0)*1000;
+    }
+    return{name:ex.name,detail:ex.detail,note:ex.note,part:s.part,sets:c,elapsed};
   }).filter(Boolean);
   return{
     date:document.getElementById('rdate').value,
@@ -953,7 +961,7 @@ document.getElementById('hto').addEventListener('change',renderHist);
 
 function showDetail(ri){
   const r=history[ri];
-  document.getElementById('mcontent').innerHTML=`<div class="mddate">${fmtD(r.date)}</div>${(r.wtypes||[]).length?`<div class="mdwtags">${(r.wtypes||[]).map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}<div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>${r.exercises.map(e=>`<div class="mdex"><div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--bg2);color:var(--text2);margin-left:6px">${e.part}</span>`:''}</div><div class="mddt">${e.detail}</div><div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'✓':'○'}`).join('  ')}${e.elapsed?' &nbsp;⏱ '+fmt(e.elapsed):''}</div></div>`).join('')}<button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>`;
+  document.getElementById('mcontent').innerHTML=`<div class="mddate">${fmtD(r.date)}</div>${(r.wtypes||[]).length?`<div class="mdwtags">${(r.wtypes||[]).map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}<div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>${r.exercises.map(e=>`<div class="mdex"><div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--bg2);color:var(--text2);margin-left:6px">${e.part}</span>`:''}</div><div class="mddt">${e.detail}</div><div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'✓':'○'}`).join('  ')}${e.elapsed>0?' &nbsp;⏱ '+fmt(e.elapsed):''}</div></div>`).join('')}<button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>`;
   document.getElementById('mbg').style.display='flex';
 }
 function delRec(ri){if(!confirm('이 기록을 삭제할까요?'))return;history.splice(ri,1);saveAll();hideModal();renderHist()}
