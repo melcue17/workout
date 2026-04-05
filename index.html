@@ -448,7 +448,7 @@ function swG(p,i){const k=swKey(p,i);if(!sw[k])sw[k]={e:0,ts:null,laps:[],iv:nul
 function swRun(p,i){return!!swG(p,i).ts}
 function swCur(p,i){const s=swG(p,i);return s.ts?s.e+(Date.now()-s.ts):s.e}
 function swStart(p,i){const s=swG(p,i);if(s.ts)return;s.ts=Date.now();s.iv=setInterval(()=>{const d=document.getElementById('sw_'+p+'_'+i);if(d){d.value=fmt(swCur(p,i));d.readOnly=true;}},500);renderRC();const el=document.getElementById('sw_'+p+'_'+i);if(el)el.readOnly=true;}
-function swStop(p,i){const s=swG(p,i);if(!s.ts)return;s.e=s.e+(Date.now()-s.ts);clearInterval(s.iv);s.ts=null;renderRC();const el=document.getElementById('sw_'+p+'_'+i);if(el)el.readOnly=false;}
+function swStop(p,i){const s=swG(p,i);if(!s.ts)return;s.e=s.e+(Date.now()-s.ts);clearInterval(s.iv);s.ts=null;renderRC();const el=document.getElementById('sw_'+p+'_'+i);if(el)el.readOnly=false;saveAll();}
 function swRst(p,i){
   const s=swG(p,i);clearInterval(s.iv);sw[swKey(p,i)]={e:0,ts:null,laps:[],iv:null};
   const el=document.getElementById('sw_'+p+'_'+i);if(el){el.value='00:00';el.readOnly=false;}
@@ -466,8 +466,9 @@ function setManualTime(p,i,val){
   const s=swG(p,i);
   clearInterval(s.iv);s.ts=null;s.iv=null;s.e=ms;
   const disp=document.getElementById('sw_'+p+'_'+i);
-  if(disp)disp.textContent=fmt(ms);
-};renderRC()}
+  if(disp){disp.value=fmt(ms);disp.readOnly=false;}
+  saveAll();
+}
 function fmt(ms){const t=Math.floor(ms/1e3);return`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`}
 
 // ── Views ──
@@ -723,7 +724,7 @@ function renderWt(){
 let wtLongTimer=null;
 function wtLongPress(i,e){wtLongTimer=setTimeout(()=>openWtEdit(),600)}
 document.addEventListener('touchend',()=>{clearTimeout(wtLongTimer)});
-function tglWt(i){wtypes[i].sel=!wtypes[i].sel;renderWt()}
+function tglWt(i){wtypes[i].sel=!wtypes[i].sel;renderWt();saveAll();}
 function addWt(){const val=document.getElementById('wtinp').value.trim();if(!val)return;const ex=wtypes.find(t=>t.label===val);if(ex)ex.sel=true;else wtypes.push({label:val,sel:true});document.getElementById('wtinp').value='';renderWt()}
 function openWtEdit(){
   document.getElementById('wtedit-list').innerHTML=wtypes.map((t,i)=>`<div class="wtedit-row">
@@ -1031,6 +1032,7 @@ function restoreDraft(){
   if(banner)banner.remove();
   // tmp-banner도 확인
   checkTmpOnOpen();
+  saveAll();
 }
 
 function discardDraft(){
@@ -1059,7 +1061,7 @@ buildPtabs();renderList();renderWt();
 initDraft();
 
 if('serviceWorker' in navigator){
-  const c=`const C='wp-v5';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
+  const c=`const C='wp-v6';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([c],{type:'application/javascript'}))).catch(()=>{});
 }
 </script>
