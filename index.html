@@ -360,6 +360,21 @@ function ls(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}
 function ss(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 function saveAll(){
   ss('wp_tpl',tpl);
+  // 진행 중인 기록지 상태도 저장
+  if(sel.length>0){
+    ss('wp_draft',{
+      sel,setChk,
+      rdate:document.getElementById('rdate')?.value||'',
+      ts:document.getElementById('ts')?.value||'',
+      te:document.getElementById('te')?.value||'',
+      tc:document.getElementById('tc')?.value||'',
+      wtypesSel:wtypes.map(t=>({label:t.label,sel:t.sel})),
+      recExSnap,
+      swState:Object.fromEntries(Object.entries(sw).map(([k,v])=>[k,{e:v.e,ts:null,laps:[],iv:null}]))
+    });
+  } else {
+    ss('wp_draft',null);
+  }
   ss('wp_s',{data,used:Object.fromEntries(Object.entries(usedSets).map(([k,v])=>[k,[...v]])),curPart,wtypes});
   ss('wp_h',history);
 }
@@ -368,7 +383,8 @@ function loadAll(){
   if(s){data=s.data;usedSets=Object.fromEntries(Object.entries(s.used).map(([k,v])=>[k,new Set(v)]));curPart=s.curPart||PARTS[0];wtypes=s.wtypes||WT_DEF.map(t=>({label:t,sel:false}));PARTS.forEach(p=>{if(!data[p])data[p]=JSON.parse(JSON.stringify(DEF[p]));if(!usedSets[p])usedSets[p]=new Set()});}
   else{data=JSON.parse(JSON.stringify(DEF));usedSets=Object.fromEntries(PARTS.map(p=>[p,new Set()]));curPart=PARTS[0];wtypes=WT_DEF.map(t=>({label:t,sel:false}));}
   history=ls('wp_h')||[];
-  // 수영/러닝 제거 마이그레이션
+  // 수영/러닝/유산소 제거 마이그레이션
+  // draft는 별도로 복원 (initDraft에서 처리)
   wtypes=wtypes.filter(t=>t.label!=='수영'&&t.label!=='러닝'&&t.label!=='유산소');
   // template
   const defaultTpl={
@@ -694,7 +710,7 @@ function addPart(){
 function tglItem(part,i){
   const idx=sel.findIndex(s=>s.part===part&&s.idx===i);
   if(idx>=0)sel.splice(idx,1);else sel.push({part,idx:i});
-  renderList();
+  renderList();saveAll();
 }
 function clrSel(){sel=[];renderList();document.getElementById('hint').textContent=''}
 function tglAdd(){addOpen=!addOpen;document.getElementById('addform').style.display=addOpen?'block':'none';document.getElementById('addarr').style.transform=addOpen?'rotate(90deg)':''}
@@ -808,12 +824,15 @@ function renderRC(){
     </div>`;
   }).join('');
 }
-function removeFromRecord(ri){sel.splice(ri,1);renderRC()}
-function tglSet(part,idx,s){const key=part+'::'+idx;if(!setChk[key])setChk[key]=[false,false,false,false];setChk[key][s]=!setChk[key][s];renderRC()}
-function setNow(id){const n=new Date();document.getElementById(id).value=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`}
-function clrTime(id){document.getElementById(id).value=''}
+function removeFromRecord(ri){sel.splice(ri,1);renderRC();saveAll();}
+function tglSet(part,idx,s){const key=part+'::'+idx;if(!setChk[key])setChk[key]=[false,false,false,false];setChk[key][s]=!setChk[key][s];renderRC();saveAll();}
+function setNow(id){const n=new Date();document.getElementById(id).value=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;saveAll();}
+function clrTime(id){document.getElementById(id).value='';saveAll();}
 function resetRecord(){
   if(!confirm('기록지 내용을 모두 초기화할까요?'))return;
+  sel=[];setChk={};sw={};recExSnap={};ss('wp_draft',null);
+  const db=document.getElementById('draft-banner');if(db)db.remove();
+  const tb=document.getElementById('tmp-banner');if(tb)tb.style.display='none';
   document.getElementById('rdate').value=new Date().toISOString().split('T')[0];
   document.getElementById('ts').value='';document.getElementById('te').value='';document.getElementById('tc').value='';
   wtypes.forEach(t=>t.sel=false);renderWt();
@@ -929,7 +948,7 @@ function saveRec(){
     const total=data[s.part].filter(x=>!x.stopped).length;
     if(usedSets[s.part].size>=total)usedSets[s.part]=new Set();
   });
-  wtypes.forEach(t=>t.sel=false);sel=[];setChk={};sw={};recExSnap={};
+  wtypes.forEach(t=>t.sel=false);sel=[];setChk={};sw={};recExSnap={};ss('wp_draft',null);
   document.getElementById('rechint').textContent='저장됐어요! 히스토리에서 확인할 수 있어요.';
   setTimeout(()=>document.getElementById('rechint').textContent='',3000);
   renderRC();saveAll();
@@ -959,6 +978,72 @@ function renderHist(){
 document.getElementById('hfrom').addEventListener('change',renderHist);
 document.getElementById('hto').addEventListener('change',renderHist);
 
+function initDraft(){
+  const draft=ls('wp_draft');
+  if(!draft||!draft.sel||draft.sel.length===0)return;
+  sel=draft.sel||[];
+  setChk=draft.setChk||{};
+  recExSnap=draft.recExSnap||{};
+  sw=Object.fromEntries(Object.entries(draft.swState||{}).map(([k,v])=>[k,{e:v.e,ts:null,laps:[],iv:null}]));
+  // wtypes sel 복원
+  if(draft.wtypesSel){
+    draft.wtypesSel.forEach(tw=>{
+      const found=wtypes.find(w=>w.label===tw.label);
+      if(found)found.sel=tw.sel;
+      else if(tw.sel)wtypes.push({label:tw.label,sel:true});
+    });
+    renderWt();
+  }
+  // 시간/날짜는 DOM이 준비된 후 설정
+  requestAnimationFrame(()=>{
+    if(draft.rdate)document.getElementById('rdate').value=draft.rdate;
+    if(draft.ts)document.getElementById('ts').value=draft.ts;
+    if(draft.te)document.getElementById('te').value=draft.te;
+    if(draft.tc)document.getElementById('tc').value=draft.tc;
+  });
+  // 기록지 탭에 배너 표시
+  showDraftBanner();
+}
+
+function showDraftBanner(){
+  // 기록지 탭 상단에 복원 안내 배너 표시
+  const existing=document.getElementById('draft-banner');
+  if(existing)return;
+  const banner=document.createElement('div');
+  banner.id='draft-banner';
+  banner.style.cssText='padding:10px 14px;background:var(--gbg);color:var(--gtxt);font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(29,158,117,.2)';
+  banner.innerHTML=`<span>작성 중인 기록지가 있어요</span>
+    <div style="display:flex;gap:6px">
+      <button onclick="restoreDraft()" style="padding:5px 12px;border-radius:20px;border:1px solid var(--green);background:var(--bg);color:var(--green);font-size:12px;font-weight:600;cursor:pointer">이어서 작성</button>
+      <button onclick="discardDraft()" style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);font-size:12px;cursor:pointer">버리기</button>
+    </div>`;
+  // wrap 상단에 삽입
+  const wrap=document.getElementById('wrap');
+  if(wrap)wrap.insertBefore(banner,wrap.firstChild);
+}
+
+function restoreDraft(){
+  // 기록지 탭으로 이동해서 복원된 내용 표시
+  showView('record');
+  document.getElementById('rpartlbl').textContent='운동 목록';
+  renderRC();
+  const banner=document.getElementById('draft-banner');
+  if(banner)banner.remove();
+  // tmp-banner도 확인
+  checkTmpOnOpen();
+}
+
+function discardDraft(){
+  sel=[];setChk={};sw={};recExSnap={};
+  wtypes.forEach(t=>t.sel=false);
+  renderWt();saveAll();
+  const banner=document.getElementById('draft-banner');
+  if(banner)banner.remove();
+  // 히스토리의 임시저장도 제거
+  const tmpIdx=history.findIndex(r=>r.isTemp);
+  if(tmpIdx>=0){history.splice(tmpIdx,1);saveAll();}
+}
+
 function showDetail(ri){
   const r=history[ri];
   document.getElementById('mcontent').innerHTML=`<div class="mddate">${fmtD(r.date)}</div>${(r.wtypes||[]).length?`<div class="mdwtags">${(r.wtypes||[]).map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}<div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>${r.exercises.map(e=>`<div class="mdex"><div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--bg2);color:var(--text2);margin-left:6px">${e.part}</span>`:''}</div><div class="mddt">${e.detail}</div><div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'O':'X'}`).join('  ')}${e.elapsed>0?' &nbsp;⏱ '+fmt(e.elapsed):''}</div></div>`).join('')}<button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>`;
@@ -970,9 +1055,11 @@ function hideModal(){document.getElementById('mbg').style.display='none'}
 function closeMBg(e){if(e.target===document.getElementById('mbg'))hideModal()}
 
 buildPtabs();renderList();renderWt();
+// 진행 중인 기록지 복원
+initDraft();
 
 if('serviceWorker' in navigator){
-  const c=`const C='wp-v4';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
+  const c=`const C='wp-v5';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([c],{type:'application/javascript'}))).catch(()=>{});
 }
 </script>
