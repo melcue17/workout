@@ -206,6 +206,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 </style>
 </head>
 <body>
+<div id="draft-banner-wrap" style="position:fixed;top:0;left:0;right:0;z-index:999;max-width:480px;margin:0 auto;display:none">
+  <div style="padding:10px 14px;background:#0F6E56;color:#fff;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+    <span>✍️ 작성 중인 기록지가 있어요</span>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button onclick="doRestoreDraft()" style="padding:5px 12px;border-radius:20px;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:600;cursor:pointer">이어서 작성</button>
+      <button onclick="doDiscardDraft()" style="padding:5px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:transparent;color:rgba(255,255,255,.8);font-size:12px;cursor:pointer">버리기</button>
+    </div>
+  </div>
+</div>
 <div class="app">
   <div class="nav">
     <div class="vtabs">
@@ -1138,29 +1147,19 @@ function loadDraft(){
 
 function checkAndShowDraftBanner(){
   const draft=ls('wp_draft');
-  if(!draft||!draft.sel||draft.sel.length===0)return;
-  // 기존 배너 있으면 제거
-  const old=document.getElementById('draft-banner');if(old)old.remove();
-  const ago=draft.savedAt?Math.round((Date.now()-draft.savedAt)/60000):0;
-  const agoTxt=ago<1?'방금':ago+'분 전';
-  const banner=document.createElement('div');
-  banner.id='draft-banner';
-  banner.style.cssText='padding:11px 14px;background:var(--gbg);color:var(--gtxt);font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(29,158,117,.2);flex-shrink:0';
-  banner.innerHTML=`<span>✍️ 작성 중인 기록지가 있어요 <span style="opacity:.7;font-size:12px">(${agoTxt})</span></span>
-    <div style="display:flex;gap:6px;flex-shrink:0">
-      <button onclick="doRestoreDraft()" style="padding:5px 12px;border-radius:20px;border:1px solid var(--green);background:var(--bg);color:var(--green);font-size:12px;font-weight:600;cursor:pointer">이어서 작성</button>
-      <button onclick="doDiscardDraft()" style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);font-size:12px;cursor:pointer">버리기</button>
-    </div>`;
-  // nav 바로 아래에 삽입
-  // content 영역 맨 위에 삽입
-  const contentEl=document.querySelector('.content');
-  if(contentEl) contentEl.insertBefore(banner,contentEl.firstChild);
+  const wrap=document.getElementById('draft-banner-wrap');
+  if(!wrap)return;
+  if(!draft||!draft.sel||draft.sel.length===0){
+    wrap.style.display='none';
+    return;
+  }
+  wrap.style.display='block';
 }
 
 function doRestoreDraft(){
   const ok=loadDraft();
   if(!ok)return;
-  const b=document.getElementById('draft-banner');if(b)b.remove();
+  const wrap=document.getElementById('draft-banner-wrap');if(wrap)wrap.style.display='none';
   showView('record');
   document.getElementById('rpartlbl').textContent='운동 목록';
   renderWt();
@@ -1172,7 +1171,7 @@ function doDiscardDraft(){
   ss('wp_draft',null);
   sel=[];setChk={};sw={};recExSnap={};
   wtypes.forEach(t=>t.sel=false);
-  const b=document.getElementById('draft-banner');if(b)b.remove();
+  const wrap=document.getElementById('draft-banner-wrap');if(wrap)wrap.style.display='none';
   const ti=history.findIndex(r=>r.isTemp);
   if(ti>=0){history.splice(ti,1);saveAll();}
   
@@ -1180,9 +1179,61 @@ function doDiscardDraft(){
 
 function showDetail(ri){
   const r=history[ri];
-  document.getElementById('mcontent').innerHTML=`<div class="mddate">${fmtD(r.date)}</div>${(r.wtypes||[]).length?`<div class="mdwtags">${(r.wtypes||[]).map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}<div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>${r.exercises.map(e=>`<div class="mdex"><div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--bg2);color:var(--text2);margin-left:6px">${e.part}</span>`:''}</div><div class="mddt">${e.detail}</div><div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'O':'X'}`).join('  ')}${e.elapsed>0?' &nbsp;⏱ '+fmt(e.elapsed):''}</div></div>`).join('')}<button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>`;
+  document.getElementById('mcontent').innerHTML=`<div class="mddate">${fmtD(r.date)}</div>${(r.wtypes||[]).length?`<div class="mdwtags">${(r.wtypes||[]).map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}<div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>${r.exercises.map(e=>`<div class="mdex"><div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--bg2);color:var(--text2);margin-left:6px">${e.part}</span>`:''}</div><div class="mddt">${e.detail}</div><div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'O':'X'}`).join('  ')}${e.elapsed>0?' &nbsp;⏱ '+fmt(e.elapsed):''}</div></div>`).join('')}${r.isTemp?`<button onclick="resumeFromHistory(${ri})" style="width:100%;padding:12px;border-radius:var(--r);border:1.5px solid #1D9E75;background:#E1F5EE;color:#0F6E56;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">✍️ 이어서 작성하기</button>`:''}<button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>`;
   document.getElementById('mbg').style.display='flex';
 }
+function resumeFromHistory(ri){
+  const r=history[ri];
+  if(!r||!r.exercises)return;
+  // 히스토리 기록에서 sel/setChk 복원
+  sel=r.exercises.map(e=>{
+    // data에서 해당 운동 인덱스 찾기
+    const partData=data[e.part];
+    if(!partData)return null;
+    const idx=partData.findIndex(ex=>ex.name===e.name);
+    if(idx<0)return null;
+    return{part:e.part,idx};
+  }).filter(Boolean);
+  setChk={};
+  r.exercises.forEach((e,i)=>{
+    if(!sel[i])return;
+    const key=sel[i].part+'::'+sel[i].idx;
+    setChk[key]=[...e.sets];
+  });
+  // recExSnap 복원
+  recExSnap={};
+  r.exercises.forEach((e,i)=>{
+    if(!sel[i])return;
+    const key=sel[i].part+'::'+sel[i].idx;
+    recExSnap[key]={name:e.name,detail:e.detail,note:e.note||''};
+  });
+  // 스톱워치 복원
+  sw={};
+  r.exercises.forEach((e,i)=>{
+    if(!sel[i])return;
+    const key=sel[i].part+'::'+sel[i].idx;
+    sw[key]={e:e.elapsed||0,ts:null,laps:[],iv:null};
+  });
+  // 날짜/시간/운동종류
+  wtypes.forEach(t=>t.sel=false);
+  (r.wtypes||[]).forEach(label=>{
+    const f=wtypes.find(w=>w.label===label);
+    if(f)f.sel=true;else wtypes.push({label,sel:true});
+  });
+  hideModal();
+  showView('record');
+  document.getElementById('rpartlbl').textContent='운동 목록';
+  setTimeout(()=>{
+    if(r.date)document.getElementById('rdate').value=r.date;
+    if(r.tStart&&r.tStart!=='--:--')document.getElementById('ts').value=r.tStart;
+    if(r.tEnd&&r.tEnd!=='--:--')document.getElementById('te').value=r.tEnd;
+    if(r.tCardio&&r.tCardio!=='--:--')document.getElementById('tc').value=r.tCardio;
+  },50);
+  renderWt();
+  renderRC();
+  saveDraft();
+}
+
 function delRec(ri){if(!confirm('이 기록을 삭제할까요?'))return;history.splice(ri,1);saveAll();hideModal();renderHist()}
 function fmtD(d){if(!d)return'-';return new Date(d+'T00:00:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'})}
 function hideModal(){document.getElementById('mbg').style.display='none'}
@@ -1192,7 +1243,7 @@ buildPtabs();renderList();renderWt();
 checkAndShowDraftBanner();
 
 if('serviceWorker' in navigator){
-  const c=`const C='wp-v14';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
+  const c=`const C='wp-v16';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([c],{type:'application/javascript'}))).catch(()=>{});
 }
 </script>
