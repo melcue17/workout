@@ -1152,10 +1152,9 @@ function checkAndShowDraftBanner(){
       <button onclick="doDiscardDraft()" style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);font-size:12px;cursor:pointer">버리기</button>
     </div>`;
   // nav 바로 아래에 삽입
-  const nav=document.getElementById('nav');
-  if(nav&&nav.nextSibling) nav.parentNode.insertBefore(banner,nav.nextSibling);
-  else document.getElementById('wrap').prepend(banner);
-  setTimeout(adjustNavHeight,50);
+  // content 영역 맨 위에 삽입
+  const contentEl=document.querySelector('.content');
+  if(contentEl) contentEl.insertBefore(banner,contentEl.firstChild);
 }
 
 function doRestoreDraft(){
@@ -1166,7 +1165,7 @@ function doRestoreDraft(){
   document.getElementById('rpartlbl').textContent='운동 목록';
   renderWt();
   renderRC();
-  setTimeout(adjustNavHeight,50);
+  
 }
 
 function doDiscardDraft(){
@@ -1176,7 +1175,7 @@ function doDiscardDraft(){
   const b=document.getElementById('draft-banner');if(b)b.remove();
   const ti=history.findIndex(r=>r.isTemp);
   if(ti>=0){history.splice(ti,1);saveAll();}
-  setTimeout(adjustNavHeight,50);
+  
 }
 
 function showDetail(ri){
@@ -1193,7 +1192,7 @@ buildPtabs();renderList();renderWt();
 checkAndShowDraftBanner();
 
 if('serviceWorker' in navigator){
-  const c=`const C='wp-v13';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
+  const c=`const C='wp-v14';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([c],{type:'application/javascript'}))).catch(()=>{});
 }
 </script>
