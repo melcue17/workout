@@ -449,21 +449,7 @@ function ss(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
 function saveAll(){
   try{
   ss('wp_tpl',tpl);
-  // 진행 중인 기록지 상태도 저장
-  if(sel.length>0){
-    ss('wp_draft',{
-      sel,setChk,
-      rdate:(document.getElementById('rdate')||{}).value||'',
-      ts:(document.getElementById('ts')||{}).value||'',
-      te:(document.getElementById('te')||{}).value||'',
-      tc:(document.getElementById('tc')||{}).value||'',
-      wtypesSel:wtypes.map(t=>({label:t.label,sel:t.sel})),
-      recExSnap,
-      swState:Object.fromEntries(Object.entries(sw).map(([k,v])=>[k,{e:v.e,ts:null,laps:[],iv:null}]))
-    });
-  } else {
-    ss('wp_draft',null);
-  }
+  saveDraft();
   ss('wp_s',{data,used:Object.fromEntries(Object.entries(usedSets).map(([k,v])=>[k,[...v]])),curPart,wtypes});
   ss('wp_h',history);
   }catch(e){console.error('saveAll error:',e);}
@@ -631,7 +617,7 @@ function onDrop(e,part,i){
     return{part:s.part,idx:ni};
   });
   dragSrcIdx=null;dragPart=null;
-  renderList();saveAll();
+  renderList();saveDraft();saveAll();
 }
 
 // ── Touch drag for mobile ──
@@ -739,7 +725,7 @@ function delEx(i){
   const nu=new Set();usedSets[curPart].forEach(x=>{if(x<i)nu.add(x);else if(x>i)nu.add(x-1)});usedSets[curPart]=nu;
   data[curPart].splice(i,1);
   if(editIdx===i)editIdx=null;else if(editIdx>i)editIdx--;
-  renderList();saveAll();
+  renderList();saveDraft();saveAll();
 }
 // ── Part Manager ──
 function openPartMgr(){
@@ -815,7 +801,7 @@ function addPart(){
 function tglItem(part,i){
   const idx=sel.findIndex(s=>s.part===part&&s.idx===i);
   if(idx>=0)sel.splice(idx,1);else sel.push({part,idx:i});
-  renderList();saveAll();
+  renderList();saveDraft();saveAll();
 }
 function clrSel(){sel=[];renderList();document.getElementById('hint').textContent=''}
 function tglAdd(){addOpen=!addOpen;document.getElementById('addform').style.display=addOpen?'block':'none';document.getElementById('addarr').style.transform=addOpen?'rotate(90deg)':''}
@@ -888,6 +874,7 @@ function goRecord(){
   renderWt();showView('record');
   document.getElementById('rpartlbl').textContent='운동 목록';
   renderRC();
+  saveDraft();
 }
 
 // ── Record cards ──
@@ -929,15 +916,14 @@ function renderRC(){
     </div>`;
   }).join('');
 }
-function removeFromRecord(ri){sel.splice(ri,1);renderRC();saveAll();}
-function tglSet(part,idx,s){const key=part+'::'+idx;if(!setChk[key])setChk[key]=[false,false,false,false];setChk[key][s]=!setChk[key][s];renderRC();saveAll();}
+function removeFromRecord(ri){sel.splice(ri,1);renderRC();saveDraft();saveAll();}
+function tglSet(part,idx,s){const key=part+'::'+idx;if(!setChk[key])setChk[key]=[false,false,false,false];setChk[key][s]=!setChk[key][s];renderRC();saveDraft();saveAll();}
 function setNow(id){const n=new Date();document.getElementById(id).value=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;saveAll();}
 function clrTime(id){document.getElementById(id).value='';saveAll();}
 function resetRecord(){
   if(!confirm('기록지 내용을 모두 초기화할까요?'))return;
   sel=[];setChk={};sw={};recExSnap={};ss('wp_draft',null);
-  const db=document.getElementById('draft-banner');if(db)db.remove();
-  const tb=document.getElementById('tmp-banner');if(tb)tb.style.display='none';
+
   document.getElementById('rdate').value=new Date().toISOString().split('T')[0];
   document.getElementById('ts').value='';document.getElementById('te').value='';document.getElementById('tc').value='';
   wtypes.forEach(t=>t.sel=false);renderWt();
@@ -1054,6 +1040,7 @@ function saveRec(){
     if(usedSets[s.part].size>=total)usedSets[s.part]=new Set();
   });
   wtypes.forEach(t=>t.sel=false);sel=[];setChk={};sw={};recExSnap={};ss('wp_draft',null);
+  const _db=document.getElementById('draft-banner');if(_db)_db.remove();
   document.getElementById('rechint').textContent='저장됐어요! 히스토리에서 확인할 수 있어요.';
   setTimeout(()=>document.getElementById('rechint').textContent='',3000);
   renderRC();saveAll();
@@ -1083,71 +1070,113 @@ function renderHist(){
 document.getElementById('hfrom').addEventListener('change',renderHist);
 document.getElementById('hto').addEventListener('change',renderHist);
 
-function initDraft(){
+
+
+
+
+// ── Draft (이어서 작성) ──
+function saveDraft(){
+  if(!sel||sel.length===0){ss('wp_draft',null);return;}
+  // 스톱워치 elapsed + input 값 수집
+  const swData={};
+  sel.forEach(s=>{
+    const key=s.part+'::'+s.idx;
+    const sw_=swG(s.part,s.idx);
+    const inp=document.getElementById('sw_'+s.part+'_'+s.idx);
+    let e=sw_.e;
+    if(inp&&inp.value&&inp.value!=='00:00'){
+      const v=inp.value.trim();
+      if(v.includes(':')){const pt=v.split(':');e=(parseInt(pt[0])||0)*60000+(parseInt(pt[1])||0)*1000;}
+      else e=(parseInt(v)||0)*1000;
+    }
+    swData[key]=e;
+  });
+  const draft={
+    sel:[...sel],
+    setChk:JSON.parse(JSON.stringify(setChk)),
+    swData,
+    recExSnap:JSON.parse(JSON.stringify(recExSnap)),
+    wtypesSel:wtypes.map(t=>({label:t.label,sel:t.sel})),
+    rdate:(document.getElementById('rdate')||{}).value||'',
+    ts:(document.getElementById('ts')||{}).value||'',
+    te:(document.getElementById('te')||{}).value||'',
+    tc:(document.getElementById('tc')||{}).value||'',
+    savedAt:Date.now()
+  };
+  ss('wp_draft',draft);
+}
+
+function loadDraft(){
   const draft=ls('wp_draft');
-  if(!draft||!draft.sel||draft.sel.length===0)return;
-  sel=draft.sel||[];
+  if(!draft||!draft.sel||draft.sel.length===0)return false;
+  sel=draft.sel;
   setChk=draft.setChk||{};
   recExSnap=draft.recExSnap||{};
-  sw=Object.fromEntries(Object.entries(draft.swState||{}).map(([k,v])=>[k,{e:v.e,ts:null,laps:[],iv:null}]));
-  // wtypes sel 복원
+  // 스톱워치 복원
+  sw={};
+  Object.entries(draft.swData||{}).forEach(([k,e])=>{
+    sw[k]={e,ts:null,laps:[],iv:null};
+  });
+  // 운동종류 복원
   if(draft.wtypesSel){
+    wtypes.forEach(t=>t.sel=false);
     draft.wtypesSel.forEach(tw=>{
       const found=wtypes.find(w=>w.label===tw.label);
       if(found)found.sel=tw.sel;
       else if(tw.sel)wtypes.push({label:tw.label,sel:true});
     });
-    renderWt();
   }
-  // 시간/날짜는 DOM이 준비된 후 설정
-  requestAnimationFrame(()=>{
+  // 날짜/시간 복원 (DOM 준비 후)
+  setTimeout(()=>{
     if(draft.rdate)document.getElementById('rdate').value=draft.rdate;
     if(draft.ts)document.getElementById('ts').value=draft.ts;
     if(draft.te)document.getElementById('te').value=draft.te;
     if(draft.tc)document.getElementById('tc').value=draft.tc;
-  });
-  // 기록지 탭에 배너 표시
-  showDraftBanner();
+  },50);
+  return true;
 }
 
-function showDraftBanner(){
-  // 기록지 탭 상단에 복원 안내 배너 표시
-  const existing=document.getElementById('draft-banner');
-  if(existing)return;
+function checkAndShowDraftBanner(){
+  const draft=ls('wp_draft');
+  if(!draft||!draft.sel||draft.sel.length===0)return;
+  // 기존 배너 있으면 제거
+  const old=document.getElementById('draft-banner');if(old)old.remove();
+  const ago=draft.savedAt?Math.round((Date.now()-draft.savedAt)/60000):0;
+  const agoTxt=ago<1?'방금':ago+'분 전';
   const banner=document.createElement('div');
   banner.id='draft-banner';
-  banner.style.cssText='padding:10px 14px;background:var(--gbg);color:var(--gtxt);font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(29,158,117,.2)';
-  banner.innerHTML=`<span>작성 중인 기록지가 있어요</span>
-    <div style="display:flex;gap:6px">
-      <button onclick="restoreDraft()" style="padding:5px 12px;border-radius:20px;border:1px solid var(--green);background:var(--bg);color:var(--green);font-size:12px;font-weight:600;cursor:pointer">이어서 작성</button>
-      <button onclick="discardDraft()" style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);font-size:12px;cursor:pointer">버리기</button>
+  banner.style.cssText='padding:11px 14px;background:var(--gbg);color:var(--gtxt);font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(29,158,117,.2);flex-shrink:0';
+  banner.innerHTML=`<span>✍️ 작성 중인 기록지가 있어요 <span style="opacity:.7;font-size:12px">(${agoTxt})</span></span>
+    <div style="display:flex;gap:6px;flex-shrink:0">
+      <button onclick="doRestoreDraft()" style="padding:5px 12px;border-radius:20px;border:1px solid var(--green);background:var(--bg);color:var(--green);font-size:12px;font-weight:600;cursor:pointer">이어서 작성</button>
+      <button onclick="doDiscardDraft()" style="padding:5px 10px;border-radius:20px;border:1px solid var(--border2);background:var(--bg);color:var(--text2);font-size:12px;cursor:pointer">버리기</button>
     </div>`;
-  // wrap 상단에 삽입
-  const wrap=document.getElementById('wrap');
-  if(wrap)wrap.insertBefore(banner,wrap.firstChild);
+  // nav 바로 아래에 삽입
+  const nav=document.getElementById('nav');
+  if(nav&&nav.nextSibling) nav.parentNode.insertBefore(banner,nav.nextSibling);
+  else document.getElementById('wrap').prepend(banner);
+  setTimeout(adjustNavHeight,50);
 }
 
-function restoreDraft(){
-  // 기록지 탭으로 이동해서 복원된 내용 표시
+function doRestoreDraft(){
+  const ok=loadDraft();
+  if(!ok)return;
+  const b=document.getElementById('draft-banner');if(b)b.remove();
   showView('record');
   document.getElementById('rpartlbl').textContent='운동 목록';
+  renderWt();
   renderRC();
-  const banner=document.getElementById('draft-banner');
-  if(banner)banner.remove();
-  // tmp-banner도 확인
-  checkTmpOnOpen();
-  saveAll();
+  setTimeout(adjustNavHeight,50);
 }
 
-function discardDraft(){
+function doDiscardDraft(){
+  ss('wp_draft',null);
   sel=[];setChk={};sw={};recExSnap={};
   wtypes.forEach(t=>t.sel=false);
-  renderWt();saveAll();
-  const banner=document.getElementById('draft-banner');
-  if(banner)banner.remove();
-  // 히스토리의 임시저장도 제거
-  const tmpIdx=history.findIndex(r=>r.isTemp);
-  if(tmpIdx>=0){history.splice(tmpIdx,1);saveAll();}
+  const b=document.getElementById('draft-banner');if(b)b.remove();
+  const ti=history.findIndex(r=>r.isTemp);
+  if(ti>=0){history.splice(ti,1);saveAll();}
+  setTimeout(adjustNavHeight,50);
 }
 
 function showDetail(ri){
@@ -1161,11 +1190,10 @@ function hideModal(){document.getElementById('mbg').style.display='none'}
 function closeMBg(e){if(e.target===document.getElementById('mbg'))hideModal()}
 
 buildPtabs();renderList();renderWt();
-// 진행 중인 기록지 복원
-initDraft();
+checkAndShowDraftBanner();
 
 if('serviceWorker' in navigator){
-  const c=`const C='wp-v12';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
+  const c=`const C='wp-v13';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([c],{type:'application/javascript'}))).catch(()=>{});
 }
 </script>
