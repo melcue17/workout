@@ -188,6 +188,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .mdsets{font-size:12px;color:var(--text2);margin-top:4px}
 .mdtime{font-size:12px;color:var(--green);margin-top:3px;font-weight:500}
 .delbtn{margin-top:1rem;width:100%;padding:12px;font-size:14px;border-radius:var(--r);border:1px solid var(--dangerborder);background:var(--dangerbg);color:var(--dangertxt);cursor:pointer;font-weight:500}
+.editbtn{margin-top:.5rem;width:100%;padding:12px;font-size:14px;border-radius:var(--r);border:1.5px solid var(--border2);background:var(--bg);color:var(--text);cursor:pointer;font-weight:500}
+.saveeditbtn{margin-top:.5rem;width:100%;padding:12px;font-size:14px;border-radius:var(--r);border:none;background:var(--text);color:var(--bg);cursor:pointer;font-weight:700}
+.edit-tinp{padding:6px 9px;font-size:14px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text);width:86px;text-align:center}
+.edit-tinp:focus{outline:none;border-color:var(--green)}
+.edit-dinp{padding:6px 9px;font-size:14px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text)}
+.edit-dinp:focus{outline:none;border-color:var(--green)}
+.hset-btn{width:44px;height:44px;border-radius:var(--rs);border:1px solid var(--border2);font-size:12px;cursor:pointer;background:var(--bg);color:var(--text2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.hset-btn.done{background:var(--text);color:var(--bg);border-color:var(--text)}
 /* part manager */
 .part-mgr-row{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--border)}
 .part-mgr-inp{flex:1;padding:5px 8px;font-size:13px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg);color:var(--text)}
@@ -466,7 +474,8 @@ function saveAll(){
 function loadAll(){
   try{
   const s=ls('wp_s');
-  if(s){data=s.data;usedSets=Object.fromEntries(Object.entries(s.used).map(([k,v])=>[k,new Set(v)]));curPart=s.curPart||PARTS[0];wtypes=s.wtypes||WT_DEF.map(t=>({label:t,sel:false}));PARTS.forEach(p=>{if(!data[p])data[p]=JSON.parse(JSON.stringify(DEF[p]));if(!usedSets[p])usedSets[p]=new Set()});}
+  if(s){data=s.data;usedSets=Object.fromEntries(Object.entries(s.used).map(([k,v])=>[k,new Set(v)]));curPart=s.curPart||PARTS[0];wtypes=s.wtypes||WT_DEF.map(t=>({label:t,sel:false}));PARTS.forEach(p=>{if(!data[p])data[p]=JSON.parse(JSON.stringify(DEF[p]));if(!usedSets[p])usedSets[p]=new Set();});
+  Object.keys(data).forEach(p=>{if(!usedSets[p])usedSets[p]=new Set();});}
   else{data=JSON.parse(JSON.stringify(DEF));usedSets=Object.fromEntries(PARTS.map(p=>[p,new Set()]));curPart=PARTS[0];wtypes=WT_DEF.map(t=>({label:t,sel:false}));}
   history=ls('wp_h')||[];
   // 수영/러닝/유산소 제거 마이그레이션
@@ -589,7 +598,7 @@ function selPart(p){
 
 // ── Progress ──
 function renderPg(){
-  const items=data[curPart],total=items.filter(x=>!x.stopped).length,used=usedSets[curPart].size,a=document.getElementById('pgarea');
+  const items=data[curPart],total=items.filter(x=>!x.stopped).length,used=(usedSets[curPart]||new Set()).size,a=document.getElementById('pgarea');
   if(!used){a.innerHTML='';return}
   a.innerHTML=`<div class="pgwrap"><div class="pgrow"><span>${curPart} 라운드</span><span>${used}/${total}</span></div><div class="pgbg"><div class="pgfill" style="width:${Math.round(used/total*100)}%"></div></div>${used===total?'<p style="font-size:11px;color:var(--text3);margin-top:3px">한 바퀴 완료!</p>':''}</div>`;
 }
@@ -699,7 +708,7 @@ function isSelected(part,idx){return sel.some(s=>s.part===part&&s.idx===idx)}
 function renderList(){
   if(!data||!curPart||!data[curPart])return;
   renderPg();
-  const items=data[curPart],used=usedSets[curPart];
+  const items=data[curPart],used=usedSets[curPart]||new Set();
   document.getElementById('exlist').innerHTML=items.map((ex,i)=>{
     const isDone=used.has(i),isSel=isSelected(curPart,i),isStp=!!ex.stopped,isEd=editIdx===i;
     let cls='exi';if(!isStp)cls+=' clickable';if(isSel)cls+=' sel';else if(isDone)cls+=' done';else if(isStp)cls+=' stp';
@@ -1044,6 +1053,7 @@ function saveRec(){
   const tb=document.getElementById('tmp-banner');if(tb)tb.style.display='none';
   // mark used per part
   sel.forEach(s=>{
+    if(!usedSets[s.part])usedSets[s.part]=new Set();
     usedSets[s.part].add(s.idx);
     const total=data[s.part].filter(x=>!x.stopped).length;
     if(usedSets[s.part].size>=total)usedSets[s.part]=new Set();
@@ -1178,61 +1188,99 @@ function doDiscardDraft(){
 }
 
 function showDetail(ri){
-  const r=history[ri];
-  document.getElementById('mcontent').innerHTML=`<div class="mddate">${fmtD(r.date)}</div>${(r.wtypes||[]).length?`<div class="mdwtags">${(r.wtypes||[]).map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}<div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>${r.exercises.map(e=>`<div class="mdex"><div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 6px;border-radius:6px;background:var(--bg2);color:var(--text2);margin-left:6px">${e.part}</span>`:''}</div><div class="mddt">${e.detail}</div><div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'O':'X'}`).join('  ')}${e.elapsed>0?' &nbsp;⏱ '+fmt(e.elapsed):''}</div></div>`).join('')}${r.isTemp?`<button onclick="resumeFromHistory(${ri})" style="width:100%;padding:12px;border-radius:var(--r);border:1.5px solid #1D9E75;background:#E1F5EE;color:#0F6E56;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">✍️ 이어서 작성하기</button>`:''}<button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>`;
+  renderHistDetail(ri, false);
   document.getElementById('mbg').style.display='flex';
 }
-function resumeFromHistory(ri){
+
+function renderHistDetail(ri, editMode){
   const r=history[ri];
-  if(!r||!r.exercises)return;
-  // 히스토리 기록에서 sel/setChk 복원
-  sel=r.exercises.map(e=>{
-    // data에서 해당 운동 인덱스 찾기
-    const partData=data[e.part];
-    if(!partData)return null;
-    const idx=partData.findIndex(ex=>ex.name===e.name);
-    if(idx<0)return null;
-    return{part:e.part,idx};
-  }).filter(Boolean);
-  setChk={};
-  r.exercises.forEach((e,i)=>{
-    if(!sel[i])return;
-    const key=sel[i].part+'::'+sel[i].idx;
-    setChk[key]=[...e.sets];
-  });
-  // recExSnap 복원
-  recExSnap={};
-  r.exercises.forEach((e,i)=>{
-    if(!sel[i])return;
-    const key=sel[i].part+'::'+sel[i].idx;
-    recExSnap[key]={name:e.name,detail:e.detail,note:e.note||''};
-  });
-  // 스톱워치 복원
-  sw={};
-  r.exercises.forEach((e,i)=>{
-    if(!sel[i])return;
-    const key=sel[i].part+'::'+sel[i].idx;
-    sw[key]={e:e.elapsed||0,ts:null,laps:[],iv:null};
-  });
-  // 날짜/시간/운동종류
-  wtypes.forEach(t=>t.sel=false);
-  (r.wtypes||[]).forEach(label=>{
-    const f=wtypes.find(w=>w.label===label);
-    if(f)f.sel=true;else wtypes.push({label,sel:true});
-  });
-  hideModal();
-  showView('record');
-  document.getElementById('rpartlbl').textContent='운동 목록';
-  setTimeout(()=>{
-    if(r.date)document.getElementById('rdate').value=r.date;
-    if(r.tStart&&r.tStart!=='--:--')document.getElementById('ts').value=r.tStart;
-    if(r.tEnd&&r.tEnd!=='--:--')document.getElementById('te').value=r.tEnd;
-    if(r.tCardio&&r.tCardio!=='--:--')document.getElementById('tc').value=r.tCardio;
-  },50);
-  renderWt();
-  renderRC();
-  saveDraft();
+  if(!r)return;
+  const exHtml=r.exercises.map((e,ei)=>{
+    if(editMode){
+      const setsHtml=e.sets.map((v,si)=>
+        `<button class="hset-btn${v?' done':''}" onclick="toggleHistSet(${ri},${ei},${si})">${si+1}세트<span style="font-size:11px">${v?'O':'X'}</span></button>`
+      ).join('');
+      const elVal=e.elapsed>0?fmt(e.elapsed):'';
+      return `<div class="mdex">
+        <div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 5px;border-radius:5px;background:var(--bg2);color:var(--text2);margin-left:5px">${e.part}</span>`:''}</div>
+        <div class="mddt" style="margin-bottom:8px">${e.detail}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${setsHtml}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:var(--text2);flex-shrink:0">⏱ 소요시간</span>
+          <input class="edit-tinp" placeholder="00:00" value="${elVal}"
+            onchange="updateHistElapsed(${ri},${ei},this.value)">
+        </div>
+      </div>`;
+    } else {
+      return `<div class="mdex">
+        <div class="mdnm">${e.name}${e.part?`<span style="font-size:10px;padding:2px 5px;border-radius:5px;background:var(--bg2);color:var(--text2);margin-left:5px">${e.part}</span>`:''}</div>
+        <div class="mddt">${e.detail}</div>
+        <div class="mdsets">${e.sets.map((v,s)=>`${s+1}세트${v?'O':'X'}`).join('  ')}${e.elapsed>0?' &nbsp;⏱ '+fmt(e.elapsed):''}</div>
+      </div>`;
+    }
+  }).join('');
+
+  const topSection = editMode ? `
+    <div style="font-size:15px;font-weight:700;margin-bottom:12px">기록 수정</div>
+    <div style="margin-bottom:10px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px">날짜</div>
+      <input class="edit-dinp" type="date" id="hedit-date" value="${r.date||''}">
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px">운동 시간</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;color:var(--text2);min-width:80px;flex-shrink:0">근력 시작</span><input class="edit-tinp" id="hedit-ts" value="${r.tStart!=='--:--'?r.tStart:''}" placeholder="--:--"></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;color:var(--text2);min-width:80px;flex-shrink:0">근력 완료</span><input class="edit-tinp" id="hedit-te" value="${r.tEnd!=='--:--'?r.tEnd:''}" placeholder="--:--"></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;color:var(--text2);min-width:80px;flex-shrink:0">유산소 완료</span><input class="edit-tinp" id="hedit-tc" value="${r.tCardio!=='--:--'?r.tCardio:''}" placeholder="--:--"></div>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px">운동별 세트 & 소요시간</div>
+  ` : `
+    <div class="mddate">${fmtD(r.date)}</div>
+    ${(r.wtypes||[]).length?`<div class="mdwtags">${r.wtypes.map(t=>`<span class="mdwtag">${t}</span>`).join('')}</div>`:''}
+    <div class="mdmeta">근력 ${r.tStart} ~ ${r.tEnd}${r.tCardio&&r.tCardio!=='--:--'?` · 유산소 완료 ${r.tCardio}`:''}</div>
+  `;
+
+  const bottomSection = editMode ? `
+    <button class="saveeditbtn" onclick="saveHistEdit(${ri})">저장</button>
+    <button class="editbtn" onclick="renderHistDetail(${ri},false)">취소</button>
+  ` : `
+    ${r.isTemp?`<button onclick="resumeFromHistory(${ri})" style="width:100%;padding:12px;border-radius:var(--r);border:1.5px solid #1D9E75;background:#E1F5EE;color:#0F6E56;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:8px">✍️ 이어서 작성하기</button>`:''}
+    <button class="editbtn" onclick="renderHistDetail(${ri},true)">✏️ 수정하기</button>
+    <button class="delbtn" onclick="delRec(${ri})">이 기록 삭제</button>
+  `;
+
+  document.getElementById('mcontent').innerHTML = topSection + exHtml + bottomSection;
 }
+
+function toggleHistSet(ri,ei,si){
+  history[ri].exercises[ei].sets[si]=!history[ri].exercises[ei].sets[si];
+  renderHistDetail(ri,true);
+}
+
+function updateHistElapsed(ri,ei,val){
+  val=(val||'').trim();
+  let ms=0;
+  if(val.includes(':')){const pt=val.split(':');ms=(parseInt(pt[0])||0)*60000+(parseInt(pt[1])||0)*1000;}
+  else ms=(parseInt(val)||0)*1000;
+  history[ri].exercises[ei].elapsed=ms;
+}
+
+function saveHistEdit(ri){
+  const r=history[ri];
+  const d=document.getElementById('hedit-date');
+  const ts=document.getElementById('hedit-ts');
+  const te=document.getElementById('hedit-te');
+  const tc=document.getElementById('hedit-tc');
+  if(d)r.date=d.value;
+  if(ts)r.tStart=ts.value||'--:--';
+  if(te)r.tEnd=te.value||'--:--';
+  if(tc)r.tCardio=tc.value||'--:--';
+  saveAll();
+  renderHistDetail(ri,false);
+  renderHist();
+}
+
 
 function delRec(ri){if(!confirm('이 기록을 삭제할까요?'))return;history.splice(ri,1);saveAll();hideModal();renderHist()}
 function fmtD(d){if(!d)return'-';return new Date(d+'T00:00:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'})}
@@ -1243,7 +1291,7 @@ buildPtabs();renderList();renderWt();
 checkAndShowDraftBanner();
 
 if('serviceWorker' in navigator){
-  const c=`const C='wp-v16';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
+  const c=`const C='wp-v18';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([c],{type:'application/javascript'}))).catch(()=>{});
 }
 </script>
