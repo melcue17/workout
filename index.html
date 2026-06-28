@@ -1227,6 +1227,10 @@ function renderHistDetail(ri, editMode){
       <input class="edit-dinp" type="date" id="hedit-date" value="${r.date||''}">
     </div>
     <div style="margin-bottom:12px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px">운동 종류</div>
+      <div id="hedit-wtags" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+    <div style="margin-bottom:12px">
       <div style="font-size:12px;color:var(--text2);margin-bottom:6px">운동 시간</div>
       <div style="display:flex;flex-direction:column;gap:7px">
         <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;color:var(--text2);min-width:80px;flex-shrink:0">근력 시작</span><input class="edit-tinp" id="hedit-ts" value="${r.tStart!=='--:--'?r.tStart:''}" placeholder="--:--"></div>
@@ -1251,6 +1255,30 @@ function renderHistDetail(ri, editMode){
   `;
 
   document.getElementById('mcontent').innerHTML = topSection + exHtml + bottomSection;
+  if(editMode) renderHeditWtags(ri);
+}
+
+function renderHeditWtags(ri){
+  const r=history[ri];
+  const area=document.getElementById('hedit-wtags');
+  if(!area)return;
+  // wtypes 전체 목록 + 현재 기록에 저장된 항목 기준으로 선택 상태 표시
+  const selected=new Set(r.wtypes||[]);
+  // wtypes(전역 운동종류 목록)에 없는 기록만의 커스텀 항목도 포함
+  const allLabels=[...new Set([...wtypes.map(t=>t.label), ...(r.wtypes||[])])];
+  area.innerHTML=allLabels.map(label=>{
+    const isSel=selected.has(label);
+    return `<span onclick="toggleHeditWtag(${ri},'${label}')" style="padding:5px 13px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid ${isSel?'var(--green)':'var(--border2)'};background:${isSel?'var(--gbg)':'var(--bg)'};color:${isSel?'var(--gtxt)':'var(--text2)'};font-weight:${isSel?'500':'400'};user-select:none">${label}</span>`;
+  }).join('');
+}
+
+function toggleHeditWtag(ri,label){
+  const r=history[ri];
+  if(!r.wtypes)r.wtypes=[];
+  const idx=r.wtypes.indexOf(label);
+  if(idx>=0) r.wtypes.splice(idx,1);
+  else r.wtypes.push(label);
+  renderHeditWtags(ri);
 }
 
 function toggleHistSet(ri,ei,si){
@@ -1291,7 +1319,7 @@ buildPtabs();renderList();renderWt();
 checkAndShowDraftBanner();
 
 if('serviceWorker' in navigator){
-  const c=`const C='wp-v18';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
+  const c=`const C='wp-v19';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.add('/')));self.skipWaiting()});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim()});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{const cl=res.clone();caches.open(C).then(c=>c.put(e.request,cl));return res})))})`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([c],{type:'application/javascript'}))).catch(()=>{});
 }
 </script>
